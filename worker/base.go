@@ -12,17 +12,17 @@ func HandleStreamRequest(request *pb.StreamRequest) {
 
 	//e.g. eidi_2006_01_02-15:04_PRES
 	fileName := fmt.Sprintf("%s_%s_%s", request.CourseSlug, request.Start.AsTime().Format("2006_01_02-15:04"), request.SourceType)
-	status.workload += 2
+
 	if !request.PublishStream {
-		status.startRecording(fileName)
+		S.startRecording(fileName)
 		log.Info("only recording")
 		record(request.SourceUrl, request.End.AsTime(), fileName)
-		status.endRecording(fileName)
+		S.endRecording(fileName)
 	} else {
-		status.startStream(fileName)
+		S.startStream(fileName)
 		log.Info("record and stream")
 		stream(request.SourceUrl, request.End.AsTime(), fileName)
-		status.endStream(fileName)
+		S.endStream(fileName)
 	}
 	transcode(request.SourceType, fmt.Sprintf("%s/%s.ts", cfg.TempDir, fileName), "")
 	// todo: check health of output file and delete temp

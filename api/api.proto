@@ -30,6 +30,7 @@ service Heartbeat {
 }
 
 message HeartBeat {
-  uint32 workload = 1;
-  repeated string Job = 2;
+  string WorkerID = 1;
+  uint32 Workload = 2;
+  repeated string Jobs = 3;
 }

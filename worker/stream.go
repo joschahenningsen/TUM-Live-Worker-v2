@@ -15,7 +15,8 @@ func stream(source string, streamEnd time.Time, fileName string) {
 	streamUntil := streamEnd.Add(time.Minute * 10)
 	log.WithFields(log.Fields{"source": source, "end": streamUntil, "fileName": fileName}).
 		Info("Recording lecture hall")
-
+	S.startStream(fileName)
+	defer S.endStream(fileName)
 	// in case ffmpeg dies retry until stream should be done.
 	for time.Now().Before(streamUntil) {
 		cmd := exec.Command(
