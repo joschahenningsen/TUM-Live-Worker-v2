@@ -8,3 +8,4 @@ features include:
 - Record lecture halls
 - Transcode recordings
 - Push recordings to LRZ
+- Detect silence in recordings
