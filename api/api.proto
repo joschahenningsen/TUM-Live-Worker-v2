@@ -1,0 +1,20 @@
+syntax = "proto3";
+package api;
+option go_package = "TUM-Live-Worker-v2/pb";
+
+service Stream {
+  // Requests a stream from a lecture hall
+  rpc RequestStream (StreamRequest) returns (Status) {}
+}
+
+message StreamRequest {
+  string WorkerId = 1;
+  string SourceType = 2;
+  string SourceUrl = 3;
+  string CourseSlug = 4;
+  uint32 Year = 5;
+}
+
+message Status {
+  bool ok = 1;
+}
