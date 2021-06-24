@@ -14,7 +14,7 @@ message StreamRequest {
   string SourceType = 2;
   string SourceUrl = 3;
   string CourseSlug = 4;
-  uint32 Year = 5;
+  int32 Year = 5;
   google.protobuf.Timestamp Start = 6;
   google.protobuf.Timestamp End = 7;
   bool PublishStream = 8;
