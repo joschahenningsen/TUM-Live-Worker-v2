@@ -3,7 +3,7 @@ package api
 import (
 	"context"
 	"github.com/joschahenningsen/TUM-Live-Worker-v2/cfg"
-	pb "github.com/joschahenningsen/TUM-Live-Worker-v2/pb"
+	"github.com/joschahenningsen/TUM-Live-Worker-v2/pb"
 	"github.com/joschahenningsen/TUM-Live-Worker-v2/worker"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
