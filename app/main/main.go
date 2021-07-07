@@ -8,7 +8,8 @@ import (
 func main() {
 	// log with time, fmt "23.09.2021 10:00:00"
 	log.SetFormatter(&log.TextFormatter{TimestampFormat: "02.01.2006 15:04:05", FullTimestamp: true})
+	log.SetLevel(log.DebugLevel)
 
 	// setup api
-	api.InitApi(":8082")
+	api.InitApi(":50051")
 }

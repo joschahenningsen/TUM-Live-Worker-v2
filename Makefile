@@ -1,6 +1,6 @@
 protoGen:
 	cd api; \
-	protoc ./api.proto --go-grpc_out=../.. --go_out=../.. --objc_out=.;
+	protoc ./api.proto --go-grpc_out=../.. --go_out=../..
 
 all: build
 

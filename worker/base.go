@@ -26,21 +26,16 @@ func HandleStreamRequest(request *pb.StreamRequest) {
 		stream(request.SourceUrl, request.End.AsTime(), fileName)
 		S.endStream(fileName)
 	}
-	transcode(request.SourceType, fmt.Sprintf("%s/%s.ts", cfg.TempDir, fileName), "")
-	// todo: check health of output file and delete temp
-	if request.PublishVoD {
-		upload("")
-	}
-	// notify done:
+	// notify stream/recording done
 	conn, err := grpc.Dial(fmt.Sprintf("%s:50052", cfg.MainBase), grpc.WithInsecure())
 	if err != nil {
-		log.Printf("Unable to dial server %v", err)
+		log.WithError(err).Error("Unable to dial server")
 		return
 	}
 
 	client := pb.NewHeartbeatClient(conn)
 	if request.PublishVoD {
-		resp, err := client.NotifyStreamFinished(context.Background(), &pb.StreamFinished{
+		resp, err := client.NotifyTranscodingFinished(context.Background(), &pb.TranscodingFinished{
 			WorkerID:   cfg.WorkerID,
 			StreamID:   request.StreamID,
 			FilePath:   fileName,
@@ -48,18 +43,30 @@ func HandleStreamRequest(request *pb.StreamRequest) {
 			SourceType: request.SourceType,
 		})
 		if err != nil || !resp.Ok {
-			log.Printf("could not notify stream end")
+			log.WithError(err).Error("Could not notify stream finished")
 		}
 	} else {
-		resp, err := client.NotifyStreamFinished(context.Background(), &pb.StreamFinished{
-			WorkerID:   cfg.WorkerID,
-			StreamID:   request.StreamID,
-			FilePath:   fileName,
+		resp, err := client.NotifyTranscodingFinished(context.Background(), &pb.TranscodingFinished{
+			WorkerID: cfg.WorkerID,
+			StreamID: request.StreamID,
+			FilePath: fileName,
 		})
 		if err != nil || !resp.Ok {
-			log.Printf("could not notify stream end")
+			log.WithError(err).Error("Could not notify stream finished")
 		}
 	}
-	_ = conn.Close()
+	transcode(request.SourceType, fmt.Sprintf("%s/%s.ts", cfg.TempDir, fileName), "")
+	// todo: check health of output file and delete temp
+	if request.PublishVoD {
+		upload("")
+	}
+	resp, err := client.NotifyTranscodingFinished(context.Background(), &pb.TranscodingFinished{
 
+	})
+	if err != nil || !resp.Ok {
+		log.WithError(err).Error("Could not notify transcoding finished")
+		return
+	}
+	// notify transcoding done:
+	_ = conn.Close()
 }

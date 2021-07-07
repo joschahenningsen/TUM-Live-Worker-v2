@@ -28,6 +28,8 @@ message Status {
 // Heartbeat service defines communication from workers to TUM-Live
 service Heartbeat {
   rpc SendHeartBeat(HeartBeat) returns (Status) {}
+  rpc NotifyTranscodingFinished(TranscodingFinished) returns (Status){}
+  rpc NotifyStreamStarted(StreamStarted) returns (Status){}
   rpc NotifyStreamFinished(StreamFinished) returns (Status){}
 }
 
@@ -40,7 +42,19 @@ message HeartBeat {
 message StreamFinished {
   string WorkerID = 1;
   uint32 StreamID = 2;
+}
+
+message TranscodingFinished {
+  string WorkerID = 1;
+  uint32 StreamID = 2;
   string FilePath = 3;
   string HlsUrl = 4;
+  string SourceType = 5;
+}
+
+message StreamStarted {
+  string WorkerID = 1;
+  uint32 StreamID = 2;
+  string HlsUrl = 3;
   string SourceType = 5;
 }

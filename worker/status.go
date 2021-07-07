@@ -95,8 +95,8 @@ func (s Status) endTranscoding(name string) {
 }
 
 func (s Status) SendHeartbeat() {
-	log.Info("sending HeartBeat")
-	if server, err := grpc.Dial(fmt.Sprintf("%s:50052", cfg.MainBase), grpc.WithInsecure()); err != nil {
+	log.Debug("sending HeartBeat")
+	if server, err := grpc.Dial(fmt.Sprintf("%s:50052", cfg.MainBase), grpc.WithInsecure()); err != nil { // workerId used for authentication
 		log.WithError(err).Error("unable to dial for heartbeat")
 		return
 	} else {

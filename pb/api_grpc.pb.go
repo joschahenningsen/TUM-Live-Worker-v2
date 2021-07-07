@@ -107,6 +107,8 @@ var Stream_ServiceDesc = grpc.ServiceDesc{
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type HeartbeatClient interface {
 	SendHeartBeat(ctx context.Context, in *HeartBeat, opts ...grpc.CallOption) (*Status, error)
+	NotifyTranscodingFinished(ctx context.Context, in *TranscodingFinished, opts ...grpc.CallOption) (*Status, error)
+	NotifyStreamStarted(ctx context.Context, in *StreamStarted, opts ...grpc.CallOption) (*Status, error)
 	NotifyStreamFinished(ctx context.Context, in *StreamFinished, opts ...grpc.CallOption) (*Status, error)
 }
 
@@ -127,6 +129,24 @@ func (c *heartbeatClient) SendHeartBeat(ctx context.Context, in *HeartBeat, opts
 	return out, nil
 }
 
+func (c *heartbeatClient) NotifyTranscodingFinished(ctx context.Context, in *TranscodingFinished, opts ...grpc.CallOption) (*Status, error) {
+	out := new(Status)
+	err := c.cc.Invoke(ctx, "/api.Heartbeat/NotifyTranscodingFinished", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *heartbeatClient) NotifyStreamStarted(ctx context.Context, in *StreamStarted, opts ...grpc.CallOption) (*Status, error) {
+	out := new(Status)
+	err := c.cc.Invoke(ctx, "/api.Heartbeat/NotifyStreamStarted", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *heartbeatClient) NotifyStreamFinished(ctx context.Context, in *StreamFinished, opts ...grpc.CallOption) (*Status, error) {
 	out := new(Status)
 	err := c.cc.Invoke(ctx, "/api.Heartbeat/NotifyStreamFinished", in, out, opts...)
@@ -141,6 +161,8 @@ func (c *heartbeatClient) NotifyStreamFinished(ctx context.Context, in *StreamFi
 // for forward compatibility
 type HeartbeatServer interface {
 	SendHeartBeat(context.Context, *HeartBeat) (*Status, error)
+	NotifyTranscodingFinished(context.Context, *TranscodingFinished) (*Status, error)
+	NotifyStreamStarted(context.Context, *StreamStarted) (*Status, error)
 	NotifyStreamFinished(context.Context, *StreamFinished) (*Status, error)
 	mustEmbedUnimplementedHeartbeatServer()
 }
@@ -151,6 +173,12 @@ type UnimplementedHeartbeatServer struct {
 
 func (UnimplementedHeartbeatServer) SendHeartBeat(context.Context, *HeartBeat) (*Status, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SendHeartBeat not implemented")
+}
+func (UnimplementedHeartbeatServer) NotifyTranscodingFinished(context.Context, *TranscodingFinished) (*Status, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method NotifyTranscodingFinished not implemented")
+}
+func (UnimplementedHeartbeatServer) NotifyStreamStarted(context.Context, *StreamStarted) (*Status, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method NotifyStreamStarted not implemented")
 }
 func (UnimplementedHeartbeatServer) NotifyStreamFinished(context.Context, *StreamFinished) (*Status, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method NotifyStreamFinished not implemented")
@@ -186,6 +214,42 @@ func _Heartbeat_SendHeartBeat_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Heartbeat_NotifyTranscodingFinished_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TranscodingFinished)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(HeartbeatServer).NotifyTranscodingFinished(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/api.Heartbeat/NotifyTranscodingFinished",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(HeartbeatServer).NotifyTranscodingFinished(ctx, req.(*TranscodingFinished))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Heartbeat_NotifyStreamStarted_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(StreamStarted)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(HeartbeatServer).NotifyStreamStarted(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/api.Heartbeat/NotifyStreamStarted",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(HeartbeatServer).NotifyStreamStarted(ctx, req.(*StreamStarted))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _Heartbeat_NotifyStreamFinished_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(StreamFinished)
 	if err := dec(in); err != nil {
@@ -214,6 +278,14 @@ var Heartbeat_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SendHeartBeat",
 			Handler:    _Heartbeat_SendHeartBeat_Handler,
+		},
+		{
+			MethodName: "NotifyTranscodingFinished",
+			Handler:    _Heartbeat_NotifyTranscodingFinished_Handler,
+		},
+		{
+			MethodName: "NotifyStreamStarted",
+			Handler:    _Heartbeat_NotifyStreamStarted_Handler,
 		},
 		{
 			MethodName: "NotifyStreamFinished",
