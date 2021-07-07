@@ -34,34 +34,24 @@ func HandleStreamRequest(request *pb.StreamRequest) {
 	}
 
 	client := pb.NewHeartbeatClient(conn)
-	if request.PublishVoD {
-		resp, err := client.NotifyTranscodingFinished(context.Background(), &pb.TranscodingFinished{
-			WorkerID:   cfg.WorkerID,
-			StreamID:   request.StreamID,
-			FilePath:   fileName,
-			HlsUrl:     fmt.Sprintf("https://live.stream.lrz.de/livetum/%s/playlist.m3u8", fileName),
-			SourceType: request.SourceType,
-		})
-		if err != nil || !resp.Ok {
-			log.WithError(err).Error("Could not notify stream finished")
-		}
-	} else {
-		resp, err := client.NotifyTranscodingFinished(context.Background(), &pb.TranscodingFinished{
-			WorkerID: cfg.WorkerID,
-			StreamID: request.StreamID,
-			FilePath: fileName,
-		})
-		if err != nil || !resp.Ok {
-			log.WithError(err).Error("Could not notify stream finished")
-		}
+	resp, err := client.NotifyStreamFinished(context.Background(), &pb.StreamFinished{
+		WorkerID:   cfg.WorkerID,
+		StreamID:   request.StreamID,
+	})
+	if err != nil || !resp.Ok {
+		log.WithError(err).Error("Could not notify stream finished")
 	}
 	transcode(request.SourceType, fmt.Sprintf("%s/%s.ts", cfg.TempDir, fileName), "")
 	// todo: check health of output file and delete temp
 	if request.PublishVoD {
 		upload("")
 	}
-	resp, err := client.NotifyTranscodingFinished(context.Background(), &pb.TranscodingFinished{
-
+	resp, err = client.NotifyTranscodingFinished(context.Background(), &pb.TranscodingFinished{
+		WorkerID:   cfg.WorkerID,
+		StreamID:   request.StreamID,
+		FilePath:   fileName,
+		HlsUrl:     fmt.Sprintf("https://live.stream.lrz.de/livetum/%s/playlist.m3u8", fileName),
+		SourceType: request.SourceType,
 	})
 	if err != nil || !resp.Ok {
 		log.WithError(err).Error("Could not notify transcoding finished")
