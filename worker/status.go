@@ -100,7 +100,7 @@ func (s Status) SendHeartbeat() {
 		log.WithError(err).Error("unable to dial for heartbeat")
 		return
 	} else {
-		client := pb.NewHeartbeatClient(server)
+		client := pb.NewFromWorkerClient(server)
 		_, err := client.SendHeartBeat(context.Background(), &pb.HeartBeat{
 			WorkerID: cfg.WorkerID,
 			Workload: uint32(s.workload),

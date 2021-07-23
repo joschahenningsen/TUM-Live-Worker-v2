@@ -12,7 +12,7 @@ import (
 )
 
 type server struct {
-	pb.UnimplementedStreamServer
+	pb.UnimplementedToWorkerServer
 }
 
 func (s server) RequestStream(ctx context.Context, request *pb.StreamRequest) (*pb.Status, error) {
@@ -33,7 +33,7 @@ func InitApi(addr string) {
 		log.WithError(err).Fatal("failed to listen")
 	}
 	grpcServer := grpc.NewServer()
-	pb.RegisterStreamServer(grpcServer, &server{})
+	pb.RegisterToWorkerServer(grpcServer, &server{})
 
 	reflection.Register(grpcServer)
 	if err := grpcServer.Serve(lis); err != nil {

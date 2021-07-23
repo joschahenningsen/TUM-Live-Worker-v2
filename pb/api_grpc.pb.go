@@ -14,282 +14,354 @@ import (
 // Requires gRPC-Go v1.32.0 or later.
 const _ = grpc.SupportPackageIsVersion7
 
-// StreamClient is the client API for Stream service.
+// ToWorkerClient is the client API for ToWorker service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-type StreamClient interface {
+type ToWorkerClient interface {
 	// Requests a stream from a lecture hall
 	RequestStream(ctx context.Context, in *StreamRequest, opts ...grpc.CallOption) (*Status, error)
+	RequestPremiere(ctx context.Context, in *PremiereRequest, opts ...grpc.CallOption) (*Status, error)
 }
 
-type streamClient struct {
+type toWorkerClient struct {
 	cc grpc.ClientConnInterface
 }
 
-func NewStreamClient(cc grpc.ClientConnInterface) StreamClient {
-	return &streamClient{cc}
+func NewToWorkerClient(cc grpc.ClientConnInterface) ToWorkerClient {
+	return &toWorkerClient{cc}
 }
 
-func (c *streamClient) RequestStream(ctx context.Context, in *StreamRequest, opts ...grpc.CallOption) (*Status, error) {
+func (c *toWorkerClient) RequestStream(ctx context.Context, in *StreamRequest, opts ...grpc.CallOption) (*Status, error) {
 	out := new(Status)
-	err := c.cc.Invoke(ctx, "/api.Stream/RequestStream", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/api.ToWorker/RequestStream", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// StreamServer is the server API for Stream service.
-// All implementations must embed UnimplementedStreamServer
+func (c *toWorkerClient) RequestPremiere(ctx context.Context, in *PremiereRequest, opts ...grpc.CallOption) (*Status, error) {
+	out := new(Status)
+	err := c.cc.Invoke(ctx, "/api.ToWorker/RequestPremiere", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// ToWorkerServer is the server API for ToWorker service.
+// All implementations must embed UnimplementedToWorkerServer
 // for forward compatibility
-type StreamServer interface {
+type ToWorkerServer interface {
 	// Requests a stream from a lecture hall
 	RequestStream(context.Context, *StreamRequest) (*Status, error)
-	mustEmbedUnimplementedStreamServer()
+	RequestPremiere(context.Context, *PremiereRequest) (*Status, error)
+	mustEmbedUnimplementedToWorkerServer()
 }
 
-// UnimplementedStreamServer must be embedded to have forward compatible implementations.
-type UnimplementedStreamServer struct {
+// UnimplementedToWorkerServer must be embedded to have forward compatible implementations.
+type UnimplementedToWorkerServer struct {
 }
 
-func (UnimplementedStreamServer) RequestStream(context.Context, *StreamRequest) (*Status, error) {
+func (UnimplementedToWorkerServer) RequestStream(context.Context, *StreamRequest) (*Status, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RequestStream not implemented")
 }
-func (UnimplementedStreamServer) mustEmbedUnimplementedStreamServer() {}
+func (UnimplementedToWorkerServer) RequestPremiere(context.Context, *PremiereRequest) (*Status, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RequestPremiere not implemented")
+}
+func (UnimplementedToWorkerServer) mustEmbedUnimplementedToWorkerServer() {}
 
-// UnsafeStreamServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to StreamServer will
+// UnsafeToWorkerServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to ToWorkerServer will
 // result in compilation errors.
-type UnsafeStreamServer interface {
-	mustEmbedUnimplementedStreamServer()
+type UnsafeToWorkerServer interface {
+	mustEmbedUnimplementedToWorkerServer()
 }
 
-func RegisterStreamServer(s grpc.ServiceRegistrar, srv StreamServer) {
-	s.RegisterService(&Stream_ServiceDesc, srv)
+func RegisterToWorkerServer(s grpc.ServiceRegistrar, srv ToWorkerServer) {
+	s.RegisterService(&ToWorker_ServiceDesc, srv)
 }
 
-func _Stream_RequestStream_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _ToWorker_RequestStream_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(StreamRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(StreamServer).RequestStream(ctx, in)
+		return srv.(ToWorkerServer).RequestStream(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/api.Stream/RequestStream",
+		FullMethod: "/api.ToWorker/RequestStream",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(StreamServer).RequestStream(ctx, req.(*StreamRequest))
+		return srv.(ToWorkerServer).RequestStream(ctx, req.(*StreamRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-// Stream_ServiceDesc is the grpc.ServiceDesc for Stream service.
+func _ToWorker_RequestPremiere_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PremiereRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ToWorkerServer).RequestPremiere(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/api.ToWorker/RequestPremiere",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ToWorkerServer).RequestPremiere(ctx, req.(*PremiereRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+// ToWorker_ServiceDesc is the grpc.ServiceDesc for ToWorker service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
-var Stream_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "api.Stream",
-	HandlerType: (*StreamServer)(nil),
+var ToWorker_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "api.ToWorker",
+	HandlerType: (*ToWorkerServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
 			MethodName: "RequestStream",
-			Handler:    _Stream_RequestStream_Handler,
+			Handler:    _ToWorker_RequestStream_Handler,
+		},
+		{
+			MethodName: "RequestPremiere",
+			Handler:    _ToWorker_RequestPremiere_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "api.proto",
 }
 
-// HeartbeatClient is the client API for Heartbeat service.
+// FromWorkerClient is the client API for FromWorker service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-type HeartbeatClient interface {
+type FromWorkerClient interface {
 	SendHeartBeat(ctx context.Context, in *HeartBeat, opts ...grpc.CallOption) (*Status, error)
 	NotifyTranscodingFinished(ctx context.Context, in *TranscodingFinished, opts ...grpc.CallOption) (*Status, error)
+	NofitySilenceResults(ctx context.Context, in *SilenceResults, opts ...grpc.CallOption) (*Status, error)
 	NotifyStreamStarted(ctx context.Context, in *StreamStarted, opts ...grpc.CallOption) (*Status, error)
 	NotifyStreamFinished(ctx context.Context, in *StreamFinished, opts ...grpc.CallOption) (*Status, error)
 }
 
-type heartbeatClient struct {
+type fromWorkerClient struct {
 	cc grpc.ClientConnInterface
 }
 
-func NewHeartbeatClient(cc grpc.ClientConnInterface) HeartbeatClient {
-	return &heartbeatClient{cc}
+func NewFromWorkerClient(cc grpc.ClientConnInterface) FromWorkerClient {
+	return &fromWorkerClient{cc}
 }
 
-func (c *heartbeatClient) SendHeartBeat(ctx context.Context, in *HeartBeat, opts ...grpc.CallOption) (*Status, error) {
+func (c *fromWorkerClient) SendHeartBeat(ctx context.Context, in *HeartBeat, opts ...grpc.CallOption) (*Status, error) {
 	out := new(Status)
-	err := c.cc.Invoke(ctx, "/api.Heartbeat/SendHeartBeat", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/api.FromWorker/SendHeartBeat", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *heartbeatClient) NotifyTranscodingFinished(ctx context.Context, in *TranscodingFinished, opts ...grpc.CallOption) (*Status, error) {
+func (c *fromWorkerClient) NotifyTranscodingFinished(ctx context.Context, in *TranscodingFinished, opts ...grpc.CallOption) (*Status, error) {
 	out := new(Status)
-	err := c.cc.Invoke(ctx, "/api.Heartbeat/NotifyTranscodingFinished", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/api.FromWorker/NotifyTranscodingFinished", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *heartbeatClient) NotifyStreamStarted(ctx context.Context, in *StreamStarted, opts ...grpc.CallOption) (*Status, error) {
+func (c *fromWorkerClient) NofitySilenceResults(ctx context.Context, in *SilenceResults, opts ...grpc.CallOption) (*Status, error) {
 	out := new(Status)
-	err := c.cc.Invoke(ctx, "/api.Heartbeat/NotifyStreamStarted", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/api.FromWorker/NofitySilenceResults", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *heartbeatClient) NotifyStreamFinished(ctx context.Context, in *StreamFinished, opts ...grpc.CallOption) (*Status, error) {
+func (c *fromWorkerClient) NotifyStreamStarted(ctx context.Context, in *StreamStarted, opts ...grpc.CallOption) (*Status, error) {
 	out := new(Status)
-	err := c.cc.Invoke(ctx, "/api.Heartbeat/NotifyStreamFinished", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/api.FromWorker/NotifyStreamStarted", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// HeartbeatServer is the server API for Heartbeat service.
-// All implementations must embed UnimplementedHeartbeatServer
+func (c *fromWorkerClient) NotifyStreamFinished(ctx context.Context, in *StreamFinished, opts ...grpc.CallOption) (*Status, error) {
+	out := new(Status)
+	err := c.cc.Invoke(ctx, "/api.FromWorker/NotifyStreamFinished", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+// FromWorkerServer is the server API for FromWorker service.
+// All implementations must embed UnimplementedFromWorkerServer
 // for forward compatibility
-type HeartbeatServer interface {
+type FromWorkerServer interface {
 	SendHeartBeat(context.Context, *HeartBeat) (*Status, error)
 	NotifyTranscodingFinished(context.Context, *TranscodingFinished) (*Status, error)
+	NofitySilenceResults(context.Context, *SilenceResults) (*Status, error)
 	NotifyStreamStarted(context.Context, *StreamStarted) (*Status, error)
 	NotifyStreamFinished(context.Context, *StreamFinished) (*Status, error)
-	mustEmbedUnimplementedHeartbeatServer()
+	mustEmbedUnimplementedFromWorkerServer()
 }
 
-// UnimplementedHeartbeatServer must be embedded to have forward compatible implementations.
-type UnimplementedHeartbeatServer struct {
+// UnimplementedFromWorkerServer must be embedded to have forward compatible implementations.
+type UnimplementedFromWorkerServer struct {
 }
 
-func (UnimplementedHeartbeatServer) SendHeartBeat(context.Context, *HeartBeat) (*Status, error) {
+func (UnimplementedFromWorkerServer) SendHeartBeat(context.Context, *HeartBeat) (*Status, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SendHeartBeat not implemented")
 }
-func (UnimplementedHeartbeatServer) NotifyTranscodingFinished(context.Context, *TranscodingFinished) (*Status, error) {
+func (UnimplementedFromWorkerServer) NotifyTranscodingFinished(context.Context, *TranscodingFinished) (*Status, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method NotifyTranscodingFinished not implemented")
 }
-func (UnimplementedHeartbeatServer) NotifyStreamStarted(context.Context, *StreamStarted) (*Status, error) {
+func (UnimplementedFromWorkerServer) NofitySilenceResults(context.Context, *SilenceResults) (*Status, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method NofitySilenceResults not implemented")
+}
+func (UnimplementedFromWorkerServer) NotifyStreamStarted(context.Context, *StreamStarted) (*Status, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method NotifyStreamStarted not implemented")
 }
-func (UnimplementedHeartbeatServer) NotifyStreamFinished(context.Context, *StreamFinished) (*Status, error) {
+func (UnimplementedFromWorkerServer) NotifyStreamFinished(context.Context, *StreamFinished) (*Status, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method NotifyStreamFinished not implemented")
 }
-func (UnimplementedHeartbeatServer) mustEmbedUnimplementedHeartbeatServer() {}
+func (UnimplementedFromWorkerServer) mustEmbedUnimplementedFromWorkerServer() {}
 
-// UnsafeHeartbeatServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to HeartbeatServer will
+// UnsafeFromWorkerServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to FromWorkerServer will
 // result in compilation errors.
-type UnsafeHeartbeatServer interface {
-	mustEmbedUnimplementedHeartbeatServer()
+type UnsafeFromWorkerServer interface {
+	mustEmbedUnimplementedFromWorkerServer()
 }
 
-func RegisterHeartbeatServer(s grpc.ServiceRegistrar, srv HeartbeatServer) {
-	s.RegisterService(&Heartbeat_ServiceDesc, srv)
+func RegisterFromWorkerServer(s grpc.ServiceRegistrar, srv FromWorkerServer) {
+	s.RegisterService(&FromWorker_ServiceDesc, srv)
 }
 
-func _Heartbeat_SendHeartBeat_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _FromWorker_SendHeartBeat_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(HeartBeat)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(HeartbeatServer).SendHeartBeat(ctx, in)
+		return srv.(FromWorkerServer).SendHeartBeat(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/api.Heartbeat/SendHeartBeat",
+		FullMethod: "/api.FromWorker/SendHeartBeat",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(HeartbeatServer).SendHeartBeat(ctx, req.(*HeartBeat))
+		return srv.(FromWorkerServer).SendHeartBeat(ctx, req.(*HeartBeat))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Heartbeat_NotifyTranscodingFinished_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _FromWorker_NotifyTranscodingFinished_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(TranscodingFinished)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(HeartbeatServer).NotifyTranscodingFinished(ctx, in)
+		return srv.(FromWorkerServer).NotifyTranscodingFinished(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/api.Heartbeat/NotifyTranscodingFinished",
+		FullMethod: "/api.FromWorker/NotifyTranscodingFinished",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(HeartbeatServer).NotifyTranscodingFinished(ctx, req.(*TranscodingFinished))
+		return srv.(FromWorkerServer).NotifyTranscodingFinished(ctx, req.(*TranscodingFinished))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Heartbeat_NotifyStreamStarted_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _FromWorker_NofitySilenceResults_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SilenceResults)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FromWorkerServer).NofitySilenceResults(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/api.FromWorker/NofitySilenceResults",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FromWorkerServer).NofitySilenceResults(ctx, req.(*SilenceResults))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _FromWorker_NotifyStreamStarted_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(StreamStarted)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(HeartbeatServer).NotifyStreamStarted(ctx, in)
+		return srv.(FromWorkerServer).NotifyStreamStarted(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/api.Heartbeat/NotifyStreamStarted",
+		FullMethod: "/api.FromWorker/NotifyStreamStarted",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(HeartbeatServer).NotifyStreamStarted(ctx, req.(*StreamStarted))
+		return srv.(FromWorkerServer).NotifyStreamStarted(ctx, req.(*StreamStarted))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _Heartbeat_NotifyStreamFinished_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _FromWorker_NotifyStreamFinished_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(StreamFinished)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(HeartbeatServer).NotifyStreamFinished(ctx, in)
+		return srv.(FromWorkerServer).NotifyStreamFinished(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/api.Heartbeat/NotifyStreamFinished",
+		FullMethod: "/api.FromWorker/NotifyStreamFinished",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(HeartbeatServer).NotifyStreamFinished(ctx, req.(*StreamFinished))
+		return srv.(FromWorkerServer).NotifyStreamFinished(ctx, req.(*StreamFinished))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-// Heartbeat_ServiceDesc is the grpc.ServiceDesc for Heartbeat service.
+// FromWorker_ServiceDesc is the grpc.ServiceDesc for FromWorker service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
-var Heartbeat_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "api.Heartbeat",
-	HandlerType: (*HeartbeatServer)(nil),
+var FromWorker_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "api.FromWorker",
+	HandlerType: (*FromWorkerServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
 			MethodName: "SendHeartBeat",
-			Handler:    _Heartbeat_SendHeartBeat_Handler,
+			Handler:    _FromWorker_SendHeartBeat_Handler,
 		},
 		{
 			MethodName: "NotifyTranscodingFinished",
-			Handler:    _Heartbeat_NotifyTranscodingFinished_Handler,
+			Handler:    _FromWorker_NotifyTranscodingFinished_Handler,
+		},
+		{
+			MethodName: "NofitySilenceResults",
+			Handler:    _FromWorker_NofitySilenceResults_Handler,
 		},
 		{
 			MethodName: "NotifyStreamStarted",
-			Handler:    _Heartbeat_NotifyStreamStarted_Handler,
+			Handler:    _FromWorker_NotifyStreamStarted_Handler,
 		},
 		{
 			MethodName: "NotifyStreamFinished",
-			Handler:    _Heartbeat_NotifyStreamFinished_Handler,
+			Handler:    _FromWorker_NotifyStreamFinished_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

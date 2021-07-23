@@ -4,9 +4,10 @@ option go_package = "TUM-Live-Worker-v2/pb";
 
 import "google/protobuf/timestamp.proto";
 
-service Stream {
+service ToWorker {
   // Requests a stream from a lecture hall
   rpc RequestStream (StreamRequest) returns (Status) {}
+  rpc RequestPremiere (PremiereRequest) returns (Status) {}
 }
 
 message StreamRequest {
@@ -21,16 +22,22 @@ message StreamRequest {
   uint32 StreamID = 10;
 }
 
+message PremiereRequest {
+  uint32 StreamID = 1;
+  string FilePath = 2;
+}
+
 message Status {
   bool ok = 1;
 }
 
 // Heartbeat service defines communication from workers to TUM-Live
-service Heartbeat {
+service FromWorker {
   rpc SendHeartBeat(HeartBeat) returns (Status) {}
-  rpc NotifyTranscodingFinished(TranscodingFinished) returns (Status){}
-  rpc NotifyStreamStarted(StreamStarted) returns (Status){}
-  rpc NotifyStreamFinished(StreamFinished) returns (Status){}
+  rpc NotifyTranscodingFinished(TranscodingFinished) returns (Status) {}
+  rpc NofitySilenceResults(SilenceResults) returns (Status) {}
+  rpc NotifyStreamStarted(StreamStarted) returns (Status) {}
+  rpc NotifyStreamFinished(StreamFinished) returns (Status) {}
 }
 
 message HeartBeat {
@@ -57,4 +64,11 @@ message StreamStarted {
   uint32 StreamID = 2;
   string HlsUrl = 3;
   string SourceType = 5;
+}
+
+message SilenceResults {
+  string WorkerID = 1;
+  uint32 StreamID = 2;
+  repeated uint32 starts = 3 [packed=true];
+  repeated uint32 ends = 4 [packed=true];
 }

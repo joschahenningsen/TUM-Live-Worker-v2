@@ -33,7 +33,7 @@ func HandleStreamRequest(request *pb.StreamRequest) {
 		return
 	}
 
-	client := pb.NewHeartbeatClient(conn)
+	client := pb.NewFromWorkerClient(conn)
 	resp, err := client.NotifyStreamFinished(context.Background(), &pb.StreamFinished{
 		WorkerID:   cfg.WorkerID,
 		StreamID:   request.StreamID,
