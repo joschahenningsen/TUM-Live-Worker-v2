@@ -12,18 +12,15 @@ import (
 )
 
 var statusLock = sync.RWMutex{}
-var S Status
+var S *Status
 
 func init() {
-	S = Status{
+	S = &Status{
 		workload: 0,
 		Jobs:     []string{},
 	}
 	c := cron.New()
-	_, err := c.AddFunc("* * * * *", S.SendHeartbeat)
-	if err != nil {
-		log.WithError(err).Error(":(")
-	}
+	_, _ = c.AddFunc("* * * * *", S.SendHeartbeat)
 	c.Start()
 }
 
@@ -37,44 +34,33 @@ type Status struct {
 	Jobs     []string
 }
 
-func (s Status) startStream(streamCtx *streamContext) {
+func (s *Status) startStream(streamCtx *StreamContext) {
+	defer s.SendHeartbeat()
 	statusLock.Lock()
-	// notify about stream:
-	if server, err := grpc.Dial(fmt.Sprintf("%s:50052", cfg.MainBase), grpc.WithInsecure()); err != nil { // workerId used for authentication
-		log.WithError(err).Error("unable to dial for stream start message")
-		return
-	} else {
-		client := pb.NewFromWorkerClient(server)
-		_, err := client.NotifyStreamStarted(context.Background(), &pb.StreamStarted{
-			WorkerID:   cfg.WorkerID,
-			StreamID:   streamCtx.streamId,
-			HlsUrl:     fmt.Sprintf("https://live.stream.lrz.de/livetum/%s{{quality}}/playlist.m3u8?dvr", streamCtx.getStreamName()),
-			SourceType: streamCtx.streamVersion,
-		})
-		if err != nil {
-			log.WithError(err).Error("Sending Stream start event failed")
-		}
-	}
+	notifyStreamStart(streamCtx)
 	defer statusLock.Unlock()
 	s.workload += costStream
 	s.Jobs = append(s.Jobs, fmt.Sprintf("streaming %s", streamCtx.getStreamName()))
 }
 
-func (s Status) startRecording(name string) {
+func (s *Status) startRecording(name string) {
+	defer s.SendHeartbeat()
 	statusLock.Lock()
 	defer statusLock.Unlock()
 	s.workload += costStream
 	s.Jobs = append(s.Jobs, fmt.Sprintf("recording %s", name))
 }
 
-func (s Status) startTranscoding(name string) {
+func (s *Status) startTranscoding(name string) {
+	defer s.SendHeartbeat()
 	statusLock.Lock()
 	defer statusLock.Unlock()
 	s.workload += costTranscoding
 	s.Jobs = append(s.Jobs, fmt.Sprintf("transcoding %s", name))
 }
 
-func (s Status) endStream(streamCtx *streamContext) {
+func (s *Status) endStream(streamCtx *StreamContext) {
+	defer s.SendHeartbeat()
 	statusLock.Lock()
 	defer statusLock.Unlock()
 	s.workload -= costStream
@@ -86,7 +72,8 @@ func (s Status) endStream(streamCtx *streamContext) {
 	}
 }
 
-func (s Status) endRecording(name string) {
+func (s *Status) endRecording(name string) {
+	defer s.SendHeartbeat()
 	statusLock.Lock()
 	defer statusLock.Unlock()
 	s.workload -= costStream
@@ -98,7 +85,8 @@ func (s Status) endRecording(name string) {
 	}
 }
 
-func (s Status) endTranscoding(name string) {
+func (s *Status) endTranscoding(name string) {
+	defer s.SendHeartbeat()
 	statusLock.Lock()
 	defer statusLock.Unlock()
 	s.workload -= costTranscoding
@@ -110,8 +98,7 @@ func (s Status) endTranscoding(name string) {
 	}
 }
 
-func (s Status) SendHeartbeat() {
-	log.Debug("sending HeartBeat")
+func (s *Status) SendHeartbeat() {
 	if server, err := grpc.Dial(fmt.Sprintf("%s:50052", cfg.MainBase), grpc.WithInsecure()); err != nil { // workerId used for authentication
 		log.WithError(err).Error("unable to dial for heartbeat")
 		return

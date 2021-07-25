@@ -6,11 +6,11 @@ import (
 	"time"
 )
 
-var s streamContext
+var s StreamContext
 
 func setup() {
 	cfg.WorkerID = "123"
-	s = streamContext{
+	s = StreamContext{
 		courseSlug:    "eidi",
 		teachingTerm:  "W",
 		teachingYear:  2021,

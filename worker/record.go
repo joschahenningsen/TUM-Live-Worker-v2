@@ -9,7 +9,7 @@ import (
 )
 
 //record records a source until endTime +10 minutes without pushing to lrz
-func record(streamCtx *streamContext) {
+func record(streamCtx *StreamContext) {
 	// add 10 minutes padding to stream end in case lecturers do lecturer things
 	recordUntil := streamCtx.endTime.Add(time.Minute * 10)
 	log.WithFields(log.Fields{"source": streamCtx.sourceUrl, "end": recordUntil, "fileName": streamCtx.getRecordingFileName()}).

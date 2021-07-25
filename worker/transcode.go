@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 )
 
-func transcode(streamCtx *streamContext) {
+func transcode(streamCtx *StreamContext) {
 	prepare(streamCtx.getTranscodingFileName())
 	var cmd *exec.Cmd
 	// create command fitting it's content with appropriate niceness:

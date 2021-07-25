@@ -12,7 +12,7 @@ import (
 	"strings"
 )
 
-func upload(streamCtx *streamContext) {
+func upload(streamCtx *StreamContext) {
 	f, err := os.Open(streamCtx.getTranscodingFileName())
 	if err != nil {
 		log.Printf("unable to open converted file for upload: %v", err)

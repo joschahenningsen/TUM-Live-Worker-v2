@@ -41,6 +41,22 @@ service FromWorker {
   rpc NotifyStreamStarted(StreamStarted) returns (Status) {}
   rpc NotifyStreamFinished(StreamFinished) returns (Status) {}
   rpc NotifyUploadFinished(UploadFinished) returns (Status) {}
+  rpc SendSelfStreamRequest(SelfStreamRequest) returns (SelfStreamResponse) {}
+}
+
+message SelfStreamRequest {
+  string WorkerID = 1;
+  string StreamKey = 2;
+  string CourseSlug = 3;
+}
+
+message SelfStreamResponse {
+  uint32 StreamID = 1;
+  string CourseSlug = 2;
+  uint32 CourseYear = 3;
+  google.protobuf.Timestamp StreamStart = 4;
+  string CourseTerm = 5;
+  bool uploadVoD = 6;
 }
 
 message HeartBeat {

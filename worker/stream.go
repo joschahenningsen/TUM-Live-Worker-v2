@@ -10,11 +10,11 @@ import (
 )
 
 //stream records and streams a lecture hall to the lrz
-func stream(streamCtx *streamContext) {
+func stream(streamCtx *StreamContext) {
 	// add 10 minutes padding to stream end in case lecturers do lecturer things
 	streamUntil := streamCtx.endTime//.Add(time.Minute * 10)
 	log.WithFields(log.Fields{"source": streamCtx.sourceUrl, "end": streamUntil, "fileName": streamCtx.getRecordingFileName()}).
-		Info("Recording lecture hall")
+		Info("streaming lecture hall")
 	S.startStream(streamCtx)
 	defer S.endStream(streamCtx)
 	// in case ffmpeg dies retry until stream should be done.

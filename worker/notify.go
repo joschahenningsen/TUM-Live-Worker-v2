@@ -9,8 +9,26 @@ import (
 	"google.golang.org/grpc"
 )
 
+func notifyStreamStart(streamCtx *StreamContext) {
+	client, conn, err := GetClient()
+	if err != nil {
+		log.WithError(err).Error("Unable to dial server")
+		return
+	}
+	resp, err := client.NotifyStreamStarted(context.Background(), &pb.StreamStarted{
+		WorkerID:   cfg.WorkerID,
+		StreamID:   streamCtx.streamId,
+		HlsUrl:     fmt.Sprintf("https://live.stream.lrz.de/livetum/%s{{quality}}/playlist.m3u8?dvr", streamCtx.getStreamName()),
+		SourceType: streamCtx.streamVersion,
+	})
+	if err != nil || !resp.Ok {
+		log.WithError(err).Error("Could not notify stream finished")
+	}
+	_ = conn.Close()
+}
+
 func notifyStreamDone(streamID uint32) {
-	client, conn, err := getClient()
+	client, conn, err := GetClient()
 	if err != nil {
 		log.WithError(err).Error("Unable to dial server")
 		return
@@ -25,8 +43,8 @@ func notifyStreamDone(streamID uint32) {
 	_ = conn.Close()
 }
 
-func notifyTranscodingDone(streamCtx *streamContext) {
-	client, conn, err := getClient()
+func notifyTranscodingDone(streamCtx *StreamContext) {
+	client, conn, err := GetClient()
 	if err != nil {
 		log.WithError(err).Error("Unable to dial server")
 		return
@@ -42,8 +60,8 @@ func notifyTranscodingDone(streamCtx *streamContext) {
 	_ = conn.Close()
 }
 
-func notifyUploadDone(streamCtx *streamContext) {
-	client, conn, err := getClient()
+func notifyUploadDone(streamCtx *StreamContext) {
+	client, conn, err := GetClient()
 	if err != nil {
 		log.WithError(err).Error("Unable to dial server")
 		return
@@ -60,7 +78,7 @@ func notifyUploadDone(streamCtx *streamContext) {
 	_ = conn.Close()
 }
 
-func getClient() (pb.FromWorkerClient, *grpc.ClientConn, error) {
+func GetClient() (pb.FromWorkerClient, *grpc.ClientConn, error) {
 	conn, err := grpc.Dial(fmt.Sprintf("%s:50052", cfg.MainBase), grpc.WithInsecure())
 	if err != nil {
 		return nil, nil, err

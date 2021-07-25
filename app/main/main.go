@@ -1,15 +1,25 @@
 package main
 
 import (
+	"fmt"
 	"github.com/getsentry/sentry-go"
 	"github.com/joschahenningsen/TUM-Live-Worker-v2/api"
+	"github.com/joschahenningsen/TUM-Live-Worker-v2/selfstream"
 	"github.com/makasim/sentryhook"
 	log "github.com/sirupsen/logrus"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 )
 
+// OsSignal contains the current os signal received.
+// Application exits when it's terminating (kill, int, sigusr, term)
+var OsSignal chan os.Signal
+
 func main() {
+	OsSignal = make(chan os.Signal, 1)
+
 	// log with time, fmt "23.09.2021 10:00:00"
 	log.SetFormatter(&log.TextFormatter{TimestampFormat: "02.01.2006 15:04:05", FullTimestamp: true})
 	log.SetLevel(log.DebugLevel)
@@ -29,6 +39,18 @@ func main() {
 		defer sentry.Recover()
 		log.AddHook(sentryhook.New([]log.Level{log.PanicLevel, log.FatalLevel, log.ErrorLevel, log.WarnLevel}))
 	}
-	// setup api
-	api.InitApi(":50051")
+	// setup apis
+	go api.InitApi(":50051")
+	go selfstream.InitApi(":8060")
+	LoopForever()
+}
+
+// LoopForever on signal processing
+func LoopForever() {
+	fmt.Printf("Entering infinite loop\n")
+
+	signal.Notify(OsSignal, syscall.SIGINT, syscall.SIGTERM, syscall.SIGUSR1)
+	_ = <-OsSignal
+
+	fmt.Printf("Exiting infinite loop received OsSignal\n")
 }

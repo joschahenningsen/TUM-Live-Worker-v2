@@ -8,11 +8,39 @@ import (
 	"time"
 )
 
+func HandleSelfStream(request *pb.SelfStreamResponse) *StreamContext {
+	streamCtx := &StreamContext{
+		streamId:      request.GetStreamID(),
+		courseSlug:    request.GetCourseSlug(),
+		teachingTerm:  request.GetCourseTerm(),
+		teachingYear:  request.GetCourseYear(),
+		startTime:     request.GetStreamStart().AsTime(),
+		publishVoD:    request.GetUploadVoD(),
+		stream:        true,
+		streamVersion: "",
+	}
+	notifyStreamStart(streamCtx)
+	S.startStream(streamCtx)
+	return streamCtx
+}
+
+func HandleSelfStreamRecordEnd(ctx *StreamContext) {
+	S.startTranscoding(ctx.getStreamName())
+	transcode(ctx)
+	S.endTranscoding(ctx.getStreamName())
+	notifyTranscodingDone(ctx)
+}
+
+func HandleSelfStreamEnd(ctx *StreamContext) {
+	S.endStream(ctx)
+	notifyStreamDone(ctx.streamId)
+}
+
 func HandleStreamRequest(request *pb.StreamRequest) {
 	log.WithField("request", request).Info("Request to stream")
 
 	//setup context with relevant information to pass to other subprocesses
-	streamCtx := &streamContext{
+	streamCtx := &StreamContext{
 		streamId:      request.GetStreamID(),
 		sourceUrl:     request.GetSourceUrl(),
 		courseSlug:    request.GetCourseSlug(),
@@ -47,8 +75,8 @@ func HandleStreamRequest(request *pb.StreamRequest) {
 	}
 }
 
-// streamContext contains all important information on a stream
-type streamContext struct {
+// StreamContext contains all important information on a stream
+type StreamContext struct {
 	streamId      uint32         //id of the stream
 	sourceUrl     string         //url of the streams source, e.g. 10.0.0.4
 	courseSlug    string         //slug of the course, e.g. eidi
@@ -64,7 +92,7 @@ type streamContext struct {
 
 // getRecordingFileName returns the filename a stream should be saved to before transcoding.
 // example: /recordings/eidi_2021-09-23_10-00_COMB.ts
-func (s streamContext) getRecordingFileName() string {
+func (s StreamContext) getRecordingFileName() string {
 	return fmt.Sprintf("%s/%s.ts",
 		cfg.TempDir,
 		s.getStreamName())
@@ -72,7 +100,7 @@ func (s streamContext) getRecordingFileName() string {
 
 // getTranscodingFileName returns the filename a stream should be saved to after transcoding.
 // example: /srv/sharedMassStorage/2021/S/eidi/2021-09-23_10-00/eidi_2021-09-23_10-00_PRES.mp4
-func (s streamContext) getTranscodingFileName() string {
+func (s StreamContext) getTranscodingFileName() string {
 	return fmt.Sprintf("%s/%d/%s/%s/%s/%s.mp4",
 		cfg.StorageDir,
 		s.teachingYear,
@@ -82,8 +110,8 @@ func (s streamContext) getTranscodingFileName() string {
 		s.getStreamName())
 }
 
-func (s streamContext) getStreamName() string {
-	return fmt.Sprintf("%s-%s-%s",
+func (s StreamContext) getStreamName() string {
+	return fmt.Sprintf("%s-%s%s",
 		s.courseSlug,
 		s.startTime.Format("2006-01-02-15-04"),
 		s.streamVersion)
