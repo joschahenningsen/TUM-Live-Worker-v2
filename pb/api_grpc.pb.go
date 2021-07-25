@@ -147,6 +147,7 @@ type FromWorkerClient interface {
 	NotifySilenceResults(ctx context.Context, in *SilenceResults, opts ...grpc.CallOption) (*Status, error)
 	NotifyStreamStarted(ctx context.Context, in *StreamStarted, opts ...grpc.CallOption) (*Status, error)
 	NotifyStreamFinished(ctx context.Context, in *StreamFinished, opts ...grpc.CallOption) (*Status, error)
+	NotifyUploadFinished(ctx context.Context, in *UploadFinished, opts ...grpc.CallOption) (*Status, error)
 }
 
 type fromWorkerClient struct {
@@ -202,6 +203,15 @@ func (c *fromWorkerClient) NotifyStreamFinished(ctx context.Context, in *StreamF
 	return out, nil
 }
 
+func (c *fromWorkerClient) NotifyUploadFinished(ctx context.Context, in *UploadFinished, opts ...grpc.CallOption) (*Status, error) {
+	out := new(Status)
+	err := c.cc.Invoke(ctx, "/api.FromWorker/NotifyUploadFinished", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // FromWorkerServer is the server API for FromWorker service.
 // All implementations must embed UnimplementedFromWorkerServer
 // for forward compatibility
@@ -211,6 +221,7 @@ type FromWorkerServer interface {
 	NotifySilenceResults(context.Context, *SilenceResults) (*Status, error)
 	NotifyStreamStarted(context.Context, *StreamStarted) (*Status, error)
 	NotifyStreamFinished(context.Context, *StreamFinished) (*Status, error)
+	NotifyUploadFinished(context.Context, *UploadFinished) (*Status, error)
 	mustEmbedUnimplementedFromWorkerServer()
 }
 
@@ -232,6 +243,9 @@ func (UnimplementedFromWorkerServer) NotifyStreamStarted(context.Context, *Strea
 }
 func (UnimplementedFromWorkerServer) NotifyStreamFinished(context.Context, *StreamFinished) (*Status, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method NotifyStreamFinished not implemented")
+}
+func (UnimplementedFromWorkerServer) NotifyUploadFinished(context.Context, *UploadFinished) (*Status, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method NotifyUploadFinished not implemented")
 }
 func (UnimplementedFromWorkerServer) mustEmbedUnimplementedFromWorkerServer() {}
 
@@ -336,6 +350,24 @@ func _FromWorker_NotifyStreamFinished_Handler(srv interface{}, ctx context.Conte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _FromWorker_NotifyUploadFinished_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UploadFinished)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FromWorkerServer).NotifyUploadFinished(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/api.FromWorker/NotifyUploadFinished",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FromWorkerServer).NotifyUploadFinished(ctx, req.(*UploadFinished))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // FromWorker_ServiceDesc is the grpc.ServiceDesc for FromWorker service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -362,6 +394,10 @@ var FromWorker_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "NotifyStreamFinished",
 			Handler:    _FromWorker_NotifyStreamFinished_Handler,
+		},
+		{
+			MethodName: "NotifyUploadFinished",
+			Handler:    _FromWorker_NotifyUploadFinished_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

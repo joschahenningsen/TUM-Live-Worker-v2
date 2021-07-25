@@ -1,12 +1,10 @@
 package worker
 
 import (
-	"context"
 	"fmt"
 	"github.com/joschahenningsen/TUM-Live-Worker-v2/cfg"
 	"github.com/joschahenningsen/TUM-Live-Worker-v2/pb"
 	log "github.com/sirupsen/logrus"
-	"google.golang.org/grpc"
 	"time"
 )
 
@@ -38,38 +36,15 @@ func HandleStreamRequest(request *pb.StreamRequest) {
 		stream(streamCtx)
 	}
 	// notify stream/recording done
-	conn, err := grpc.Dial(fmt.Sprintf("%s:50052", cfg.MainBase), grpc.WithInsecure())
-	if err != nil {
-		log.WithError(err).Error("Unable to dial server")
-		return
-	}
-
-	client := pb.NewFromWorkerClient(conn)
-	resp, err := client.NotifyStreamFinished(context.Background(), &pb.StreamFinished{
-		WorkerID: cfg.WorkerID,
-		StreamID: request.StreamID,
-	})
-	if err != nil || !resp.Ok {
-		log.WithError(err).Error("Could not notify stream finished")
-	}
+	notifyStreamDone(streamCtx.streamId)
 
 	transcode(streamCtx)
+	notifyTranscodingDone(streamCtx)
 	// todo: check health of output file and delete temp
 	if request.PublishVoD {
 		upload(streamCtx)
+		notifyUploadDone(streamCtx)
 	}
-	resp, err = client.NotifyTranscodingFinished(context.Background(), &pb.TranscodingFinished{
-		WorkerID:   cfg.WorkerID,
-		StreamID:   request.StreamID,
-		FilePath:   streamCtx.getTranscodingFileName(),
-		HlsUrl:     fmt.Sprintf("https://stream.lrz.de/vod/_definst_/mp4:tum/RBG/%s.mp4/playlist.m3u8", streamCtx.getStreamName()),
-		SourceType: request.SourceType,
-	})
-	if err != nil || !resp.Ok {
-		log.WithError(err).Error("Could not notify transcoding finished")
-		return
-	}
-	_ = conn.Close()
 }
 
 // streamContext contains all important information on a stream
@@ -108,8 +83,8 @@ func (s streamContext) getTranscodingFileName() string {
 }
 
 func (s streamContext) getStreamName() string {
-	return fmt.Sprintf("%s_%s_%s",
+	return fmt.Sprintf("%s-%s-%s",
 		s.courseSlug,
-		s.startTime.Format("2006-01-02_15-04"),
+		s.startTime.Format("2006-01-02-15-04"),
 		s.streamVersion)
 }

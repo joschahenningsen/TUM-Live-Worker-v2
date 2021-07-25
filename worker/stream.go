@@ -12,7 +12,7 @@ import (
 //stream records and streams a lecture hall to the lrz
 func stream(streamCtx *streamContext) {
 	// add 10 minutes padding to stream end in case lecturers do lecturer things
-	streamUntil := streamCtx.endTime.Add(time.Minute * 10)
+	streamUntil := streamCtx.endTime//.Add(time.Minute * 10)
 	log.WithFields(log.Fields{"source": streamCtx.sourceUrl, "end": streamUntil, "fileName": streamCtx.getRecordingFileName()}).
 		Info("Recording lecture hall")
 	S.startStream(streamCtx)
@@ -40,17 +40,9 @@ func stream(streamCtx *streamContext) {
 		} else {
 			log.WithError(errFfmpegErrFile).Error("Could not create file for ffmpeg stdErr")
 		}
-		err = cmd.Start()
+		err = cmd.Run()
 		if err != nil {
-			errorWithBackoff(&lastErr, "Error while streaming (start)", err)
-			if errFfmpegErrFile == nil {
-				_ = ffmpegErr.Close()
-			}
-			continue
-		}
-		err = cmd.Wait()
-		if err != nil {
-			errorWithBackoff(&lastErr, "Error while streaming (wait)", err)
+			errorWithBackoff(&lastErr, "Error while streaming (run)", err)
 			if errFfmpegErrFile == nil {
 				_ = ffmpegErr.Close()
 			}
