@@ -3,7 +3,8 @@ module github.com/joschahenningsen/TUM-Live-Worker-v2
 go 1.16
 
 require (
-	github.com/golang/protobuf v1.5.2
+	github.com/getsentry/sentry-go v0.11.0
+	github.com/makasim/sentryhook v0.4.0 // indirect
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/sirupsen/logrus v1.8.1
 	golang.org/x/net v0.0.0-20210614182718-04defd469f4e // indirect

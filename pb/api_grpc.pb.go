@@ -144,7 +144,7 @@ var ToWorker_ServiceDesc = grpc.ServiceDesc{
 type FromWorkerClient interface {
 	SendHeartBeat(ctx context.Context, in *HeartBeat, opts ...grpc.CallOption) (*Status, error)
 	NotifyTranscodingFinished(ctx context.Context, in *TranscodingFinished, opts ...grpc.CallOption) (*Status, error)
-	NofitySilenceResults(ctx context.Context, in *SilenceResults, opts ...grpc.CallOption) (*Status, error)
+	NotifySilenceResults(ctx context.Context, in *SilenceResults, opts ...grpc.CallOption) (*Status, error)
 	NotifyStreamStarted(ctx context.Context, in *StreamStarted, opts ...grpc.CallOption) (*Status, error)
 	NotifyStreamFinished(ctx context.Context, in *StreamFinished, opts ...grpc.CallOption) (*Status, error)
 }
@@ -175,9 +175,9 @@ func (c *fromWorkerClient) NotifyTranscodingFinished(ctx context.Context, in *Tr
 	return out, nil
 }
 
-func (c *fromWorkerClient) NofitySilenceResults(ctx context.Context, in *SilenceResults, opts ...grpc.CallOption) (*Status, error) {
+func (c *fromWorkerClient) NotifySilenceResults(ctx context.Context, in *SilenceResults, opts ...grpc.CallOption) (*Status, error) {
 	out := new(Status)
-	err := c.cc.Invoke(ctx, "/api.FromWorker/NofitySilenceResults", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/api.FromWorker/NotifySilenceResults", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -208,7 +208,7 @@ func (c *fromWorkerClient) NotifyStreamFinished(ctx context.Context, in *StreamF
 type FromWorkerServer interface {
 	SendHeartBeat(context.Context, *HeartBeat) (*Status, error)
 	NotifyTranscodingFinished(context.Context, *TranscodingFinished) (*Status, error)
-	NofitySilenceResults(context.Context, *SilenceResults) (*Status, error)
+	NotifySilenceResults(context.Context, *SilenceResults) (*Status, error)
 	NotifyStreamStarted(context.Context, *StreamStarted) (*Status, error)
 	NotifyStreamFinished(context.Context, *StreamFinished) (*Status, error)
 	mustEmbedUnimplementedFromWorkerServer()
@@ -224,8 +224,8 @@ func (UnimplementedFromWorkerServer) SendHeartBeat(context.Context, *HeartBeat) 
 func (UnimplementedFromWorkerServer) NotifyTranscodingFinished(context.Context, *TranscodingFinished) (*Status, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method NotifyTranscodingFinished not implemented")
 }
-func (UnimplementedFromWorkerServer) NofitySilenceResults(context.Context, *SilenceResults) (*Status, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method NofitySilenceResults not implemented")
+func (UnimplementedFromWorkerServer) NotifySilenceResults(context.Context, *SilenceResults) (*Status, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method NotifySilenceResults not implemented")
 }
 func (UnimplementedFromWorkerServer) NotifyStreamStarted(context.Context, *StreamStarted) (*Status, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method NotifyStreamStarted not implemented")
@@ -282,20 +282,20 @@ func _FromWorker_NotifyTranscodingFinished_Handler(srv interface{}, ctx context.
 	return interceptor(ctx, in, info, handler)
 }
 
-func _FromWorker_NofitySilenceResults_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _FromWorker_NotifySilenceResults_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(SilenceResults)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(FromWorkerServer).NofitySilenceResults(ctx, in)
+		return srv.(FromWorkerServer).NotifySilenceResults(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/api.FromWorker/NofitySilenceResults",
+		FullMethod: "/api.FromWorker/NotifySilenceResults",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(FromWorkerServer).NofitySilenceResults(ctx, req.(*SilenceResults))
+		return srv.(FromWorkerServer).NotifySilenceResults(ctx, req.(*SilenceResults))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -352,8 +352,8 @@ var FromWorker_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _FromWorker_NotifyTranscodingFinished_Handler,
 		},
 		{
-			MethodName: "NofitySilenceResults",
-			Handler:    _FromWorker_NofitySilenceResults_Handler,
+			MethodName: "NotifySilenceResults",
+			Handler:    _FromWorker_NotifySilenceResults_Handler,
 		},
 		{
 			MethodName: "NotifyStreamStarted",

@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"errors"
 	"github.com/joschahenningsen/TUM-Live-Worker-v2/cfg"
 	"github.com/joschahenningsen/TUM-Live-Worker-v2/pb"
 	"github.com/joschahenningsen/TUM-Live-Worker-v2/worker"
@@ -16,10 +17,9 @@ type server struct {
 }
 
 func (s server) RequestStream(ctx context.Context, request *pb.StreamRequest) (*pb.Status, error) {
-	log.WithFields(log.Fields{"myKey": cfg.WorkerID, "theirKey": request.GetWorkerId()}).Info("...")
 	if request.WorkerId != cfg.WorkerID {
 		log.Info("Rejected request to stream")
-		return &pb.Status{Ok: false}, nil
+		return &pb.Status{Ok: false}, errors.New("unauthenticated: wrong worker id")
 	}
 	go worker.HandleStreamRequest(request)
 	return &pb.Status{Ok: true}, nil

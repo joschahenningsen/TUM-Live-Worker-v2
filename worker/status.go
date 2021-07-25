@@ -37,11 +37,27 @@ type Status struct {
 	Jobs     []string
 }
 
-func (s Status) startStream(name string) {
+func (s Status) startStream(streamCtx *streamContext) {
 	statusLock.Lock()
+	// notify about stream:
+	if server, err := grpc.Dial(fmt.Sprintf("%s:50052", cfg.MainBase), grpc.WithInsecure()); err != nil { // workerId used for authentication
+		log.WithError(err).Error("unable to dial for stream start message")
+		return
+	} else {
+		client := pb.NewFromWorkerClient(server)
+		_, err := client.NotifyStreamStarted(context.Background(), &pb.StreamStarted{
+			WorkerID:   cfg.WorkerID,
+			StreamID:   streamCtx.streamId,
+			HlsUrl:     fmt.Sprintf("https://live.stream.lrz.de/livetum/%s{{quality}}?dvr/playlist.m3u8", streamCtx.getStreamName()),
+			SourceType: streamCtx.streamVersion,
+		})
+		if err != nil {
+			log.WithError(err).Error("Sending Stream start event failed")
+		}
+	}
 	defer statusLock.Unlock()
 	s.workload += costStream
-	s.Jobs = append(s.Jobs, fmt.Sprintf("streaming %s", name))
+	s.Jobs = append(s.Jobs, fmt.Sprintf("streaming %s", streamCtx.getStreamName()))
 }
 
 func (s Status) startRecording(name string) {
@@ -58,12 +74,12 @@ func (s Status) startTranscoding(name string) {
 	s.Jobs = append(s.Jobs, fmt.Sprintf("transcoding %s", name))
 }
 
-func (s Status) endStream(name string) {
+func (s Status) endStream(streamCtx *streamContext) {
 	statusLock.Lock()
 	defer statusLock.Unlock()
 	s.workload -= costStream
 	for i := range s.Jobs {
-		if s.Jobs[i] == fmt.Sprintf("streaming %s", name) {
+		if s.Jobs[i] == fmt.Sprintf("streaming %s", streamCtx.getStreamName()) {
 			s.Jobs = append(s.Jobs[:i], s.Jobs[i+1:]...)
 			return
 		}

@@ -7,11 +7,13 @@ import (
 	"path/filepath"
 )
 
-func transcode(sourceName string, in string, out string) {
-	prepare(out)
+func transcode(streamCtx *streamContext) {
+	prepare(streamCtx.getTranscodingFileName())
 	var cmd *exec.Cmd
 	// create command fitting it's content with appropriate niceness:
-	switch sourceName {
+	in := streamCtx.getRecordingFileName()
+	out := streamCtx.getTranscodingFileName()
+	switch streamCtx.streamVersion {
 	case "CAM":
 		// compress camera image slightly more
 		cmd = exec.Command("nice", "10", "ffmpeg", "-nostats", "-i", in, "-vsync", "2", "-c:v", "libx264", "-c:a", "aac", "-b:a", "128k", "-crf", "26", out)
@@ -20,6 +22,7 @@ func transcode(sourceName string, in string, out string) {
 	case "COMB":
 		cmd = exec.Command("nice", "8", "ffmpeg", "-nostats", "-i", in, "-vsync", "2", "-c:v", "libx264", "-c:a", "aac", "-b:a", "128k", "-crf", "24", out)
 	default:
+		//unknown source, use higher compression and less priority
 		cmd = exec.Command("nice", "10", "ffmpeg", "-nostats", "-i", in, "-vsync", "2", "-c:v", "libx264", "-c:a", "aac", "-b:a", "128k", "-crf", "26", out)
 	}
 	log.WithFields(log.Fields{"input": in, "output": out, "command": cmd.String()}).Info("Transcoding")

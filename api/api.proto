@@ -20,6 +20,8 @@ message StreamRequest {
   bool PublishStream = 8;
   bool PublishVoD = 9;
   uint32 StreamID = 10;
+  string CourseTerm = 11;
+  uint32 CourseYear = 12;
 }
 
 message PremiereRequest {
@@ -35,7 +37,7 @@ message Status {
 service FromWorker {
   rpc SendHeartBeat(HeartBeat) returns (Status) {}
   rpc NotifyTranscodingFinished(TranscodingFinished) returns (Status) {}
-  rpc NofitySilenceResults(SilenceResults) returns (Status) {}
+  rpc NotifySilenceResults(SilenceResults) returns (Status) {}
   rpc NotifyStreamStarted(StreamStarted) returns (Status) {}
   rpc NotifyStreamFinished(StreamFinished) returns (Status) {}
 }
