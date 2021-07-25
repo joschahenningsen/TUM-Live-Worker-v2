@@ -14,10 +14,11 @@ func HandleSelfStream(request *pb.SelfStreamResponse) *StreamContext {
 		courseSlug:    request.GetCourseSlug(),
 		teachingTerm:  request.GetCourseTerm(),
 		teachingYear:  request.GetCourseYear(),
-		startTime:     request.GetStreamStart().AsTime(),
+		startTime:     request.GetStreamStart().AsTime().Local(),
 		publishVoD:    request.GetUploadVoD(),
 		stream:        true,
 		streamVersion: "",
+		isSelfStream:  true,
 	}
 	notifyStreamStart(streamCtx)
 	S.startStream(streamCtx)
@@ -46,11 +47,12 @@ func HandleStreamRequest(request *pb.StreamRequest) {
 		courseSlug:    request.GetCourseSlug(),
 		teachingTerm:  request.GetCourseTerm(),
 		teachingYear:  request.GetCourseYear(),
-		startTime:     request.GetStart().AsTime(),
-		endTime:       request.GetEnd().AsTime(),
+		startTime:     request.GetStart().AsTime().Local(),
+		endTime:       request.GetEnd().AsTime().Local(),
 		streamVersion: request.GetSourceType(),
 		publishVoD:    request.GetPublishVoD(),
 		stream:        request.GetPublishStream(),
+		isSelfStream:  false,
 	}
 
 	//only record
@@ -88,19 +90,36 @@ type StreamContext struct {
 	publishVoD    bool           //whether file should be uploaded
 	stream        bool           //whether streaming is enabled
 	commands      map[string]int //map command type to pid, e.g. "stream"->123
+	isSelfStream  bool
 }
 
 // getRecordingFileName returns the filename a stream should be saved to before transcoding.
 // example: /recordings/eidi_2021-09-23_10-00_COMB.ts
 func (s StreamContext) getRecordingFileName() string {
-	return fmt.Sprintf("%s/%s.ts",
+	if !s.isSelfStream {
+		return fmt.Sprintf("%s/%s.ts",
+			cfg.TempDir,
+			s.getStreamName())
+	}
+	return fmt.Sprintf("%s/%s_%s.flv",
 		cfg.TempDir,
-		s.getStreamName())
+		s.courseSlug,
+		s.startTime.Format("02012006"))
 }
 
 // getTranscodingFileName returns the filename a stream should be saved to after transcoding.
 // example: /srv/sharedMassStorage/2021/S/eidi/2021-09-23_10-00/eidi_2021-09-23_10-00_PRES.mp4
 func (s StreamContext) getTranscodingFileName() string {
+	if s.isSelfStream {
+		return fmt.Sprintf("%s/%d/%s/%s/%s/%s-%s.mp4",
+			cfg.StorageDir,
+			s.teachingYear,
+			s.teachingTerm,
+			s.courseSlug,
+			s.startTime.Format("2006-01-02_15-04"),
+			s.courseSlug,
+			s.startTime.Format("02012006"))
+	}
 	return fmt.Sprintf("%s/%d/%s/%s/%s/%s.mp4",
 		cfg.StorageDir,
 		s.teachingYear,
@@ -111,8 +130,11 @@ func (s StreamContext) getTranscodingFileName() string {
 }
 
 func (s StreamContext) getStreamName() string {
-	return fmt.Sprintf("%s-%s%s",
-		s.courseSlug,
-		s.startTime.Format("2006-01-02-15-04"),
-		s.streamVersion)
+	if !s.isSelfStream {
+		return fmt.Sprintf("%s-%s%s",
+			s.courseSlug,
+			s.startTime.Format("2006-01-02-15-04"),
+			s.streamVersion)
+	}
+	return s.courseSlug
 }
