@@ -39,7 +39,7 @@ func (s *Status) startSilenceDetection(streamCtx *StreamContext) {
 	defer s.SendHeartbeat()
 	statusLock.Lock()
 	s.workload += costSilenceDetection
-	s.Jobs = append(s.Jobs, "detecting silence in %s", streamCtx.getStreamName())
+	s.Jobs = append(s.Jobs, fmt.Sprintf("detecting silence in %s", streamCtx.getStreamName()))
 	statusLock.Unlock()
 }
 
