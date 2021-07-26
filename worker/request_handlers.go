@@ -8,6 +8,21 @@ import (
 	"time"
 )
 
+func HandlePremiere(request *pb.PremiereRequest) {
+	streamCtx := &StreamContext{
+		streamId:      request.StreamID,
+		sourceUrl:     request.FilePath,
+		startTime:     time.Now(),
+		streamVersion: "",
+		courseSlug:    "PREMIERE",
+		stream:        true,
+		commands:      nil,
+	}
+	S.startStream(streamCtx)
+	streamPremiere(streamCtx)
+	S.endStream(streamCtx)
+}
+
 func HandleSelfStream(request *pb.SelfStreamResponse) *StreamContext {
 	streamCtx := &StreamContext{
 		streamId:      request.GetStreamID(),

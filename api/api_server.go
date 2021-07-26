@@ -25,6 +25,15 @@ func (s server) RequestStream(ctx context.Context, request *pb.StreamRequest) (*
 	return &pb.Status{Ok: true}, nil
 }
 
+func (s server) RequestPremiere(ctx context.Context, request *pb.PremiereRequest) (*pb.Status, error) {
+	if request.WorkerID != cfg.WorkerID {
+		log.Info("Rejected request to stream")
+		return &pb.Status{Ok: false}, errors.New("unauthenticated: wrong worker id")
+	}
+	go worker.HandlePremiere(request)
+	return &pb.Status{Ok: true}, nil
+}
+
 //InitApi Initializes api endpoints
 //addr: port to run on, e.g. ":8080"
 func InitApi(addr string) {

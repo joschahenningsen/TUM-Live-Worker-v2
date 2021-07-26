@@ -121,9 +121,9 @@ func (s *Status) endSilenceDetection(streamCtx *StreamContext) {
 }
 
 func (s *Status) SendHeartbeat() {
-	if server, err := grpc.Dial(fmt.Sprintf("%s:50052", cfg.MainBase), grpc.WithInsecure()); err != nil { // workerId used for authentication
+	// WithInsecure: workerId used for authentication, all servers are inside their own VLAN to further improve security
+	if server, err := grpc.Dial(fmt.Sprintf("%s:50052", cfg.MainBase), grpc.WithInsecure()); err != nil {
 		log.WithError(err).Error("unable to dial for heartbeat")
-		return
 	} else {
 		client := pb.NewFromWorkerClient(server)
 		_, err := client.SendHeartBeat(context.Background(), &pb.HeartBeat{
@@ -133,7 +133,6 @@ func (s *Status) SendHeartbeat() {
 		})
 		if err != nil {
 			log.WithError(err).Error("Sending Heartbeat failed")
-			return
 		}
 	}
 }

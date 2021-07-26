@@ -27,6 +27,7 @@ message StreamRequest {
 message PremiereRequest {
   uint32 StreamID = 1;
   string FilePath = 2;
+  string WorkerID = 3;
 }
 
 message Status {
