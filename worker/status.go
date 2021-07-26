@@ -25,13 +25,22 @@ func init() {
 }
 
 const (
-	costStream      = 2
-	costTranscoding = 1
+	costStream           = 3
+	costTranscoding      = 2
+	costSilenceDetection = 1
 )
 
 type Status struct {
 	workload uint
 	Jobs     []string
+}
+
+func (s *Status) startSilenceDetection(streamCtx *StreamContext) {
+	defer s.SendHeartbeat()
+	statusLock.Lock()
+	s.workload += costSilenceDetection
+	s.Jobs = append(s.Jobs, "detecting silence in %s", streamCtx.getStreamName())
+	statusLock.Unlock()
 }
 
 func (s *Status) startStream(streamCtx *StreamContext) {
@@ -62,40 +71,53 @@ func (s *Status) startTranscoding(name string) {
 func (s *Status) endStream(streamCtx *StreamContext) {
 	defer s.SendHeartbeat()
 	statusLock.Lock()
-	defer statusLock.Unlock()
 	s.workload -= costStream
 	for i := range s.Jobs {
 		if s.Jobs[i] == fmt.Sprintf("streaming %s", streamCtx.getStreamName()) {
 			s.Jobs = append(s.Jobs[:i], s.Jobs[i+1:]...)
-			return
+			break
 		}
 	}
+	statusLock.Unlock()
 }
 
 func (s *Status) endRecording(name string) {
 	defer s.SendHeartbeat()
 	statusLock.Lock()
-	defer statusLock.Unlock()
 	s.workload -= costStream
 	for i := range s.Jobs {
 		if s.Jobs[i] == fmt.Sprintf("recording %s", name) {
 			s.Jobs = append(s.Jobs[:i], s.Jobs[i+1:]...)
-			return
+			break
 		}
 	}
+	statusLock.Unlock()
 }
 
 func (s *Status) endTranscoding(name string) {
 	defer s.SendHeartbeat()
 	statusLock.Lock()
-	defer statusLock.Unlock()
 	s.workload -= costTranscoding
 	for i := range s.Jobs {
 		if s.Jobs[i] == fmt.Sprintf("transcoding %s", name) {
 			s.Jobs = append(s.Jobs[:i], s.Jobs[i+1:]...)
-			return
+			break
 		}
 	}
+	statusLock.Unlock()
+}
+
+func (s *Status) endSilenceDetection(streamCtx *StreamContext) {
+	defer s.SendHeartbeat()
+	statusLock.Lock()
+	s.workload -= s.workload
+	for i := range s.Jobs {
+		if s.Jobs[i] == fmt.Sprintf("detecting silence in %s", streamCtx.getStreamName()) {
+			s.Jobs = append(s.Jobs[:i], s.Jobs[i+1:]...)
+			break
+		}
+	}
+	statusLock.Unlock()
 }
 
 func (s *Status) SendHeartbeat() {

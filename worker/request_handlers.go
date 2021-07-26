@@ -30,6 +30,16 @@ func HandleSelfStreamRecordEnd(ctx *StreamContext) {
 	transcode(ctx)
 	S.endTranscoding(ctx.getStreamName())
 	notifyTranscodingDone(ctx)
+	S.startSilenceDetection(ctx)
+	defer S.endSilenceDetection(ctx)
+
+	sd := NewSilenceDetector(ctx.getTranscodingFileName())
+	err := sd.ParseSilence()
+	if err != nil {
+		log.WithField("File", ctx.getTranscodingFileName()).WithError(err).Error("Detecting silence failed.")
+		return
+	}
+	notifySilenceResults(sd.Silences, ctx.streamId)
 }
 
 func HandleSelfStreamEnd(ctx *StreamContext) {
@@ -75,6 +85,16 @@ func HandleStreamRequest(request *pb.StreamRequest) {
 		upload(streamCtx)
 		notifyUploadDone(streamCtx)
 	}
+	S.startSilenceDetection(streamCtx)
+	defer S.endSilenceDetection(streamCtx)
+
+	sd := NewSilenceDetector(streamCtx.getTranscodingFileName())
+	err := sd.ParseSilence()
+	if err != nil {
+		log.WithField("File", streamCtx.getTranscodingFileName()).WithError(err).Error("Detecting silence failed.")
+		return
+	}
+	notifySilenceResults(sd.Silences, streamCtx.streamId)
 }
 
 // StreamContext contains all important information on a stream

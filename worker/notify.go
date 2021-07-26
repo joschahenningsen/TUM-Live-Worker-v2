@@ -9,6 +9,36 @@ import (
 	"google.golang.org/grpc"
 )
 
+func notifySilenceResults(silences *[]silence, streamID uint32) {
+	if silences == nil {
+		return
+	}
+
+	client, conn, err := GetClient()
+	if err != nil {
+		log.WithError(err).Error("Unable to dial server")
+		return
+	}
+	var starts []uint32
+	var ends []uint32
+	sArr := *silences
+	for _, i := range sArr {
+		starts = append(starts, uint32(i.Start))
+		ends = append(ends, uint32(i.Start))
+	}
+
+	_, err = client.NotifySilenceResults(context.Background(), &pb.SilenceResults{
+		WorkerID: cfg.WorkerID,
+		StreamID: streamID,
+		Starts:   nil,
+		Ends:     nil,
+	})
+	if err != nil {
+		log.WithError(err).Error("Could not send silence replies")
+	}
+	_ = conn.Close()
+}
+
 func notifyStreamStart(streamCtx *StreamContext) {
 	client, conn, err := GetClient()
 	if err != nil {
