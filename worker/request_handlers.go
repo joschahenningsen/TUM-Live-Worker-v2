@@ -21,6 +21,7 @@ func HandlePremiere(request *pb.PremiereRequest) {
 	S.startStream(streamCtx)
 	streamPremiere(streamCtx)
 	S.endStream(streamCtx)
+	notifyStreamDone(streamCtx.streamId)
 }
 
 func HandleSelfStream(request *pb.SelfStreamResponse) *StreamContext {
@@ -93,7 +94,9 @@ func HandleStreamRequest(request *pb.StreamRequest) {
 	// notify stream/recording done
 	notifyStreamDone(streamCtx.streamId)
 
+	S.startTranscoding(streamCtx.getStreamName())
 	transcode(streamCtx)
+	S.endTranscoding(streamCtx.getStreamName())
 	notifyTranscodingDone(streamCtx)
 	// todo: check health of output file and delete temp
 	if request.PublishVoD {
