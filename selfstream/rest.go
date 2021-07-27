@@ -4,6 +4,7 @@ package selfstream
 import (
 	"errors"
 	"github.com/gin-gonic/gin"
+	"github.com/joschahenningsen/TUM-Live-Worker-v2/cfg"
 	"github.com/joschahenningsen/TUM-Live-Worker-v2/worker"
 	log "github.com/sirupsen/logrus"
 	"net/http"
@@ -17,6 +18,12 @@ var streams = make(map[string]*worker.StreamContext)
 //InitApi creates routes for the api consumed by nginx
 func InitApi(addr string) {
 	r := gin.Default()
+	r.GET("/", func(c *gin.Context) {
+		if cfg.WorkerID == "" {
+			c.AbortWithStatus(http.StatusInternalServerError)
+		}
+		c.String(http.StatusOK, "Hi, I'm alive, give me some work!")
+	})
 	r.POST("/on_publish", onPublish)
 	r.POST("/on_publish_done", onPublishDone)
 	r.POST("/on_record_done", onRecordDone)
