@@ -1,7 +1,6 @@
 # TUM-Live-Worker
 
-(WIP) Rewrite of the worker for [TUM-Live](https://github.com/joschahenningsen/TUM-Live) with :sparkles: fancy gRPC
-communication :sparkles:
+The worker for [TUM-Live](https://github.com/joschahenningsen/TUM-Live)
 
 features include:
 
@@ -9,3 +8,4 @@ features include:
 - Transcode recordings
 - Push recordings to LRZ
 - Detect silence in recordings
+- Stream Video files as "Premieres"
