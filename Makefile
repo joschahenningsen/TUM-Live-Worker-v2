@@ -1,8 +1,8 @@
+all: build
+
 protoGen:
 	cd api; \
 	protoc ./api.proto --go-grpc_out=../.. --go_out=../..
-
-all: build
 
 build: deps
 	go build app/main/main.go;

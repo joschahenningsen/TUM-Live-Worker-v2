@@ -48,7 +48,7 @@ func notifyStreamStart(streamCtx *StreamContext) {
 	resp, err := client.NotifyStreamStarted(context.Background(), &pb.StreamStarted{
 		WorkerID:   cfg.WorkerID,
 		StreamID:   streamCtx.streamId,
-		HlsUrl:     fmt.Sprintf("https://live.stream.lrz.de/livetum/%s{{quality}}/playlist.m3u8?dvr", streamCtx.getStreamName()),
+		HlsUrl:     fmt.Sprintf("https://live.stream.lrz.de/livetum/amlst:%s_all/playlist.m3u8?dvr", streamCtx.getStreamName()),
 		SourceType: streamCtx.streamVersion,
 	})
 	if err != nil || !resp.Ok {
