@@ -48,7 +48,7 @@ func notifyStreamStart(streamCtx *StreamContext) {
 	resp, err := client.NotifyStreamStarted(context.Background(), &pb.StreamStarted{
 		WorkerID:   cfg.WorkerID,
 		StreamID:   streamCtx.streamId,
-		HlsUrl:     fmt.Sprintf("https://live.stream.lrz.de/livetum/amlst:%s_all/playlist.m3u8?dvr", streamCtx.getStreamName()),
+		HlsUrl:     fmt.Sprintf("https://live.stream.lrz.de/livetum/%s/playlist.m3u8", streamCtx.getStreamName()),
 		SourceType: streamCtx.streamVersion,
 	})
 	if err != nil || !resp.Ok {
@@ -99,8 +99,8 @@ func notifyUploadDone(streamCtx *StreamContext) {
 	resp, err := client.NotifyUploadFinished(context.Background(), &pb.UploadFinished{
 		WorkerID:   cfg.WorkerID,
 		StreamID:   streamCtx.streamId,
-		HLSUrl:     fmt.Sprintf("https://stream.lrz.de/vod/_definst_/mp4:tum/RBG/%s.mp4/playlist.m3u8", streamCtx.getStreamName()),
-		SourceType: "",
+		HLSUrl:     fmt.Sprintf("https://stream.lrz.de/vod/_definst_/mp4:tum/RBG/%s.mp4/playlist.m3u8", streamCtx.getStreamNameVoD()),
+		SourceType: streamCtx.streamVersion,
 	})
 	if err != nil || !resp.Ok {
 		log.WithError(err).Error("Could not notify upload finished")

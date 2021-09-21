@@ -176,3 +176,14 @@ func (s StreamContext) getStreamName() string {
 	}
 	return s.courseSlug
 }
+
+// getStreamNameVoD returns the stream name for vod (lrz replaces - with _)
+func (s StreamContext) getStreamNameVoD() string {
+	if !s.isSelfStream {
+		return fmt.Sprintf("%s_%s%s",
+			s.courseSlug,
+			s.startTime.Format("2006_01_02_15_04"),
+			s.streamVersion)
+	}
+	return s.courseSlug
+}
