@@ -36,7 +36,6 @@ func HandleSelfStream(request *pb.SelfStreamResponse) *StreamContext {
 		streamVersion: "",
 		isSelfStream:  true,
 	}
-	notifyStreamStart(streamCtx)
 	S.startStream(streamCtx)
 	return streamCtx
 }
