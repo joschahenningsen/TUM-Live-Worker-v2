@@ -17,6 +17,7 @@ func HandlePremiere(request *pb.PremiereRequest) {
 		courseSlug:    "PREMIERE",
 		stream:        true,
 		commands:      nil,
+		ingestServer:  request.IngestServer,
 	}
 	S.startStream(streamCtx)
 	streamPremiere(streamCtx)
@@ -77,6 +78,7 @@ func HandleStreamRequest(request *pb.StreamRequest) {
 		streamVersion: request.GetSourceType(),
 		publishVoD:    request.GetPublishVoD(),
 		stream:        request.GetPublishStream(),
+		streamName:    request.GetStreamName(),
 		isSelfStream:  false,
 	}
 
@@ -128,6 +130,8 @@ type StreamContext struct {
 	stream        bool           //whether streaming is enabled
 	commands      map[string]int //map command type to pid, e.g. "stream"->123
 	isSelfStream  bool
+	streamName    string // ingest target
+	ingestServer  string // ingest server e.g. rtmp://user:password@my.server
 }
 
 // getRecordingFileName returns the filename a stream should be saved to before transcoding.

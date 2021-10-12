@@ -22,12 +22,16 @@ message StreamRequest {
   uint32 StreamID = 10;
   string CourseTerm = 11;
   uint32 CourseYear = 12;
+  string StreamName = 13;
+  string IngestServer = 14;
 }
 
 message PremiereRequest {
   uint32 StreamID = 1;
   string FilePath = 2;
   string WorkerID = 3;
+  string StreamName = 4;
+  string IngestServer = 5;
 }
 
 message Status {
@@ -94,6 +98,6 @@ message StreamStarted {
 message SilenceResults {
   string WorkerID = 1;
   uint32 StreamID = 2;
-  repeated uint32 starts = 3 [packed=true];
-  repeated uint32 ends = 4 [packed=true];
+  repeated uint32 starts = 3 [packed = true];
+  repeated uint32 ends = 4 [packed = true];
 }
