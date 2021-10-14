@@ -60,7 +60,7 @@ func onPublish(c *gin.Context) {
 		return
 	}
 	// register stream in local map
-	streamContext := worker.HandleSelfStream(resp)
+	streamContext := worker.HandleSelfStream(resp, slug)
 	streams[streamKey] = streamContext
 	_ = conn.Close()
 }

@@ -25,7 +25,7 @@ func HandlePremiere(request *pb.PremiereRequest) {
 	notifyStreamDone(streamCtx.streamId)
 }
 
-func HandleSelfStream(request *pb.SelfStreamResponse) *StreamContext {
+func HandleSelfStream(request *pb.SelfStreamResponse, slug string) *StreamContext {
 	streamCtx := &StreamContext{
 		streamId:      request.GetStreamID(),
 		courseSlug:    request.GetCourseSlug(),
@@ -34,10 +34,14 @@ func HandleSelfStream(request *pb.SelfStreamResponse) *StreamContext {
 		startTime:     request.GetStreamStart().AsTime().Local(),
 		publishVoD:    request.GetUploadVoD(),
 		stream:        true,
-		streamVersion: "",
+		streamVersion: "COMB",
 		isSelfStream:  true,
+		ingestServer:  request.IngestServer,
+		sourceUrl:     "rtmp://localhost/stream/" + slug,
+		streamName:    request.StreamName,
 	}
 	S.startStream(streamCtx)
+	stream(streamCtx)
 	return streamCtx
 }
 
@@ -130,9 +134,9 @@ type StreamContext struct {
 	publishVoD    bool           //whether file should be uploaded
 	stream        bool           //whether streaming is enabled
 	commands      map[string]int //map command type to pid, e.g. "stream"->123
-	isSelfStream  bool
-	streamName    string // ingest target
-	ingestServer  string // ingest server e.g. rtmp://user:password@my.server
+	isSelfStream  bool           //deprecated
+	streamName    string         // ingest target
+	ingestServer  string         // ingest server e.g. rtmp://user:password@my.server
 }
 
 // getRecordingFileName returns the filename a stream should be saved to before transcoding.

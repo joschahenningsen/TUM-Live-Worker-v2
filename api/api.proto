@@ -62,6 +62,8 @@ message SelfStreamResponse {
   google.protobuf.Timestamp StreamStart = 4;
   string CourseTerm = 5;
   bool uploadVoD = 6;
+  string IngestServer = 7;
+  string StreamName = 8;
 }
 
 message HeartBeat {
