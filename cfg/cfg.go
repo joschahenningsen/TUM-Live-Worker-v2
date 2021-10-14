@@ -8,7 +8,6 @@ var (
 	WorkerID     string
 	TempDir      string // recordings will end up here before they are converted
 	StorageDir   string // recordings will end up here after they are converted
-	IngestBase   string // deprecated
 	LrzUser      string
 	LrzMail      string
 	LrzPhone     string
@@ -23,7 +22,6 @@ func init() {
 	WorkerID = os.Getenv("WorkerID")
 	TempDir = "/recordings"                            // recordings will end up here before they are converted
 	StorageDir = "/srv/cephfs/livestream/rec/TUM-Live" // recordings will end up here after they are converted
-	IngestBase = os.Getenv("IngestBase")
 	LrzUser = os.Getenv("LrzUser")
 	LrzMail = os.Getenv("LrzMail")
 	LrzPhone = os.Getenv("LrzPhone")

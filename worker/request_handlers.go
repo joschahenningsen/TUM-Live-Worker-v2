@@ -79,6 +79,7 @@ func HandleStreamRequest(request *pb.StreamRequest) {
 		publishVoD:    request.GetPublishVoD(),
 		stream:        request.GetPublishStream(),
 		streamName:    request.GetStreamName(),
+		ingestServer:  request.GetIngestServer(),
 		isSelfStream:  false,
 	}
 

@@ -26,7 +26,7 @@ func stream(streamCtx *StreamContext) {
 			"-t", fmt.Sprintf("%.0f", streamUntil.Sub(time.Now()).Seconds()), // timeout ffmpeg when stream is finished
 			"-i", fmt.Sprintf("rtsp://%s", streamCtx.sourceUrl),
 			"-map", "0", "-c", "copy", "-f", "mpegts", "-", "-c:v", "libx264", "-preset", "veryfast", "-tune", "zerolatency", "-maxrate", "2500k", "-bufsize", "3000k", "-g", "60", "-r", "30", "-x264-params", "keyint=60:scenecut=0", "-c:a", "aac", "-ar", "44100", "-b:a", "128k",
-			"-f", "flv", fmt.Sprintf("%s%s", streamCtx.ingestServer, streamCtx.streamName))
+			"-f", "flv", fmt.Sprintf("%s/%s", streamCtx.ingestServer, streamCtx.streamName))
 		log.WithField("cmd", cmd.String()).Info("Starting stream")
 		outfile, err := os.OpenFile(streamCtx.getRecordingFileName(), os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
 		if err != nil {
