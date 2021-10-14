@@ -32,16 +32,17 @@ func HandleSelfStream(request *pb.SelfStreamResponse, slug string) *StreamContex
 		teachingTerm:  request.GetCourseTerm(),
 		teachingYear:  request.GetCourseYear(),
 		startTime:     request.GetStreamStart().AsTime().Local(),
+		endTime:       time.Now().Add(time.Hour * 7),
 		publishVoD:    request.GetUploadVoD(),
 		stream:        true,
 		streamVersion: "COMB",
-		isSelfStream:  true,
+		isSelfStream:  false,
 		ingestServer:  request.IngestServer,
 		sourceUrl:     "rtmp://localhost/stream/" + slug,
 		streamName:    request.StreamName,
 	}
 	S.startStream(streamCtx)
-	stream(streamCtx)
+	go stream(streamCtx)
 	return streamCtx
 }
 
@@ -50,6 +51,10 @@ func HandleSelfStreamRecordEnd(ctx *StreamContext) {
 	transcode(ctx)
 	S.endTranscoding(ctx.getStreamName())
 	notifyTranscodingDone(ctx)
+	if ctx.publishVoD{
+		upload(ctx)
+		notifyUploadDone(ctx)
+	}
 	S.startSilenceDetection(ctx)
 	defer S.endSilenceDetection(ctx)
 
@@ -63,6 +68,7 @@ func HandleSelfStreamRecordEnd(ctx *StreamContext) {
 }
 
 func HandleSelfStreamEnd(ctx *StreamContext) {
+	ctx.stopped = true
 	S.endStream(ctx)
 	notifyStreamDone(ctx.streamId)
 }
@@ -73,7 +79,7 @@ func HandleStreamRequest(request *pb.StreamRequest) {
 	//setup context with relevant information to pass to other subprocesses
 	streamCtx := &StreamContext{
 		streamId:      request.GetStreamID(),
-		sourceUrl:     request.GetSourceUrl(),
+		sourceUrl:     "rtsp://" + request.GetSourceUrl(),
 		courseSlug:    request.GetCourseSlug(),
 		teachingTerm:  request.GetCourseTerm(),
 		teachingYear:  request.GetCourseYear(),
@@ -137,6 +143,7 @@ type StreamContext struct {
 	isSelfStream  bool           //deprecated
 	streamName    string         // ingest target
 	ingestServer  string         // ingest server e.g. rtmp://user:password@my.server
+	stopped       bool
 }
 
 // getRecordingFileName returns the filename a stream should be saved to before transcoding.

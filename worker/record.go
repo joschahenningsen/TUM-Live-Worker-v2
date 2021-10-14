@@ -5,6 +5,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"os"
 	"os/exec"
+	"strings"
 	"time"
 )
 
@@ -18,14 +19,26 @@ func record(streamCtx *StreamContext) {
 	// in case ffmpeg dies retry until stream should be done.
 	for time.Now().Before(recordUntil) {
 		// recordings are made raw without further encoding
-		cmd := exec.Command(
-			"ffmpeg", "-nostats", "-rtsp_transport", "tcp",
-			"-t", fmt.Sprintf("%.0f", recordUntil.Sub(time.Now()).Seconds()), // timeout ffmpeg when stream is finished
-			"-i", fmt.Sprintf("rtsp://%s", streamCtx.sourceUrl),
-			"-map", "0",
-			"-c:v", "copy",
-			"-c:a", "copy",
-			"-f", "mpegts", "-")
+		var cmd *exec.Cmd
+		if strings.Contains(streamCtx.sourceUrl, "rtsp") {
+			cmd = exec.Command(
+				"ffmpeg", "-nostats", "-rtsp_transport", "tcp",
+				"-t", fmt.Sprintf("%.0f", recordUntil.Sub(time.Now()).Seconds()), // timeout ffmpeg when stream is finished
+				"-i", streamCtx.sourceUrl,
+				"-map", "0",
+				"-c:v", "copy",
+				"-c:a", "copy",
+				"-f", "mpegts", "-")
+		} else {
+			cmd = exec.Command(
+				"ffmpeg", "-nostats",
+				"-t", fmt.Sprintf("%.0f", recordUntil.Sub(time.Now()).Seconds()), // timeout ffmpeg when stream is finished
+				"-i", streamCtx.sourceUrl,
+				"-map", "0",
+				"-c:v", "copy",
+				"-c:a", "copy",
+				"-f", "mpegts", "-")
+		}
 		outfile, err := os.OpenFile(streamCtx.getRecordingFileName(), os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
 		if err != nil {
 			log.WithError(err).Error("Unable to create file for recording")

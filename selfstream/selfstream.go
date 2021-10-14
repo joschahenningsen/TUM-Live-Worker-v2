@@ -9,6 +9,7 @@ import (
 	"net/http"
 )
 
+//deprecated
 //onRecordDone is called by nginx when the recording is finished
 func onRecordDone(c *gin.Context) {
 	streamKey, _, err := mustGetStreamInfo(c)
@@ -31,7 +32,10 @@ func onPublishDone(c *gin.Context) {
 		return
 	}
 	if streamCtx, ok := streams[streamKey]; ok {
-		worker.HandleSelfStreamEnd(streamCtx)
+		go func() {
+			worker.HandleSelfStreamEnd(streamCtx)
+			worker.HandleSelfStreamRecordEnd(streamCtx)
+		}()
 	} else {
 		log.WithField("streamKey", streamKey).Error("stream key not existing in self streams map")
 	}

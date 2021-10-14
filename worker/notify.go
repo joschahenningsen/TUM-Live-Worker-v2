@@ -30,8 +30,8 @@ func notifySilenceResults(silences *[]silence, streamID uint32) {
 	_, err = client.NotifySilenceResults(context.Background(), &pb.SilenceResults{
 		WorkerID: cfg.WorkerID,
 		StreamID: streamID,
-		Starts:   nil,
-		Ends:     nil,
+		Starts:   starts,
+		Ends:     ends,
 	})
 	if err != nil {
 		log.WithError(err).Error("Could not send silence replies")

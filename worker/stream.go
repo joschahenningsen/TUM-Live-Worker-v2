@@ -6,27 +6,40 @@ import (
 	log "github.com/sirupsen/logrus"
 	"os"
 	"os/exec"
+	"strings"
 	"time"
 )
 
 //stream records and streams a lecture hall to the lrz
 func stream(streamCtx *StreamContext) {
 	// add 10 minutes padding to stream end in case lecturers do lecturer things
-	streamUntil := streamCtx.endTime//.Add(time.Minute * 10)
+	streamUntil := streamCtx.endTime //.Add(time.Minute * 10)
 	log.WithFields(log.Fields{"source": streamCtx.sourceUrl, "end": streamUntil, "fileName": streamCtx.getRecordingFileName()}).
 		Info("streaming lecture hall")
 	S.startStream(streamCtx)
 	defer S.endStream(streamCtx)
 	// in case ffmpeg dies retry until stream should be done.
 	lastErr := time.Now().Add(time.Minute * -1)
-	for time.Now().Before(streamUntil) {
-		cmd := exec.Command(
-			"ffmpeg", "-hide_banner", "-nostats", "-rtsp_transport", "tcp",
-			"-stimeout", "5000000", // timeout ffmpeg when there's no data from the device for 5 seconds
-			"-t", fmt.Sprintf("%.0f", streamUntil.Sub(time.Now()).Seconds()), // timeout ffmpeg when stream is finished
-			"-i", fmt.Sprintf("rtsp://%s", streamCtx.sourceUrl),
-			"-map", "0", "-c", "copy", "-f", "mpegts", "-", "-c:v", "libx264", "-preset", "veryfast", "-tune", "zerolatency", "-maxrate", "2500k", "-bufsize", "3000k", "-g", "60", "-r", "30", "-x264-params", "keyint=60:scenecut=0", "-c:a", "aac", "-ar", "44100", "-b:a", "128k",
-			"-f", "flv", fmt.Sprintf("%s/%s", streamCtx.ingestServer, streamCtx.streamName))
+	for time.Now().Before(streamUntil) && !streamCtx.stopped {
+		var cmd *exec.Cmd
+
+		// todo: too much duplication
+		if strings.Contains(streamCtx.sourceUrl, "rtsp") {
+			cmd = exec.Command(
+				"ffmpeg", "-hide_banner", "-nostats", "-rtsp_transport", "tcp",
+				"-stimeout", "5000000", // timeout ffmpeg when there's no data from the device for 5 seconds
+				"-t", fmt.Sprintf("%.0f", streamUntil.Sub(time.Now()).Seconds()), // timeout ffmpeg when stream is finished
+				"-i", fmt.Sprintf(streamCtx.sourceUrl),
+				"-map", "0", "-c", "copy", "-f", "mpegts", "-", "-c:v", "libx264", "-preset", "veryfast", "-tune", "zerolatency", "-maxrate", "2500k", "-bufsize", "3000k", "-g", "60", "-r", "30", "-x264-params", "keyint=60:scenecut=0", "-c:a", "aac", "-ar", "44100", "-b:a", "128k",
+				"-f", "flv", fmt.Sprintf("%s/%s", streamCtx.ingestServer, streamCtx.streamName))
+		}else{
+			cmd = exec.Command(
+				"ffmpeg", "-hide_banner", "-nostats",
+				"-t", fmt.Sprintf("%.0f", streamUntil.Sub(time.Now()).Seconds()), // timeout ffmpeg when stream is finished
+				"-i", fmt.Sprintf(streamCtx.sourceUrl),
+				"-map", "0", "-c", "copy", "-f", "mpegts", "-", "-c:v", "libx264", "-preset", "veryfast", "-tune", "zerolatency", "-maxrate", "2500k", "-bufsize", "3000k", "-g", "60", "-r", "30", "-x264-params", "keyint=60:scenecut=0", "-c:a", "aac", "-ar", "44100", "-b:a", "128k",
+				"-f", "flv", fmt.Sprintf("%s/%s", streamCtx.ingestServer, streamCtx.streamName))
+		}
 		log.WithField("cmd", cmd.String()).Info("Starting stream")
 		outfile, err := os.OpenFile(streamCtx.getRecordingFileName(), os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
 		if err != nil {
