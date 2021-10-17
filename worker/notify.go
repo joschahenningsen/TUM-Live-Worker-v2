@@ -24,7 +24,7 @@ func notifySilenceResults(silences *[]silence, streamID uint32) {
 	sArr := *silences
 	for _, i := range sArr {
 		starts = append(starts, uint32(i.Start))
-		ends = append(ends, uint32(i.Start))
+		ends = append(ends, uint32(i.End))
 	}
 
 	_, err = client.NotifySilenceResults(context.Background(), &pb.SilenceResults{

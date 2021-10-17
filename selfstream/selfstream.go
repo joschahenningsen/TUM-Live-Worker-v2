@@ -12,9 +12,10 @@ import (
 //deprecated
 //onRecordDone is called by nginx when the recording is finished
 func onRecordDone(c *gin.Context) {
+	log.Info("On record done called")
 	streamKey, _, err := mustGetStreamInfo(c)
 	if err != nil {
-		log.WithError(err).Warn("bad on_publish request")
+		log.WithFields(log.Fields{"request": c.Request.Form}).WithError(err).Warn("onRecordDone: bad on_publish request")
 		return
 	}
 	if streamCtx, ok := streams[streamKey]; ok {
@@ -26,9 +27,10 @@ func onRecordDone(c *gin.Context) {
 
 //onPublishDone is called by nginx when the stream stops publishing
 func onPublishDone(c *gin.Context) {
+	log.Info("On publish done called")
 	streamKey, _, err := mustGetStreamInfo(c)
 	if err != nil {
-		log.WithError(err).Warn("bad on_publish request")
+		log.WithFields(log.Fields{"request": c.Request.Form}).WithError(err).Warn("onRecordDone: bad on_publish request")
 		return
 	}
 	if streamCtx, ok := streams[streamKey]; ok {
@@ -43,9 +45,10 @@ func onPublishDone(c *gin.Context) {
 
 //onPublish is called by nginx when the stream starts publishing
 func onPublish(c *gin.Context) {
+	log.Info("On publish called")
 	streamKey, slug, err := mustGetStreamInfo(c)
 	if err != nil {
-		log.WithError(err).Warn("bad on_publish request")
+		log.WithFields(log.Fields{"request": c.Request.Form}).WithError(err).Warn("onRecordDone: bad on_publish request")
 		return
 	}
 	client, conn, err := worker.GetClient()

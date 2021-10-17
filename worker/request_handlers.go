@@ -5,6 +5,7 @@ import (
 	"github.com/joschahenningsen/TUM-Live-Worker-v2/cfg"
 	"github.com/joschahenningsen/TUM-Live-Worker-v2/pb"
 	log "github.com/sirupsen/logrus"
+	"os/exec"
 	"time"
 )
 
@@ -51,7 +52,7 @@ func HandleSelfStreamRecordEnd(ctx *StreamContext) {
 	transcode(ctx)
 	S.endTranscoding(ctx.getStreamName())
 	notifyTranscodingDone(ctx)
-	if ctx.publishVoD{
+	if ctx.publishVoD {
 		upload(ctx)
 		notifyUploadDone(ctx)
 	}
@@ -67,8 +68,17 @@ func HandleSelfStreamRecordEnd(ctx *StreamContext) {
 	notifySilenceResults(sd.Silences, ctx.streamId)
 }
 
+//HandleSelfStreamEnd stops the ffmpeg instance by sending a SIGINT to it and prevents the loop to restart it by marking the stream context as stopped.
 func HandleSelfStreamEnd(ctx *StreamContext) {
 	ctx.stopped = true
+	if ctx.streamCmd != nil && ctx.streamCmd.Process != nil {
+		err := ctx.streamCmd.Process.Kill()
+		if err != nil {
+			log.WithError(err).Warn("can't kill self-stream ffmpeg")
+		}
+	} else {
+		log.Warn("self-stream context has no command on stream end")
+	}
 	S.endStream(ctx)
 	notifyStreamDone(ctx.streamId)
 }
@@ -140,6 +150,7 @@ type StreamContext struct {
 	publishVoD    bool           //whether file should be uploaded
 	stream        bool           //whether streaming is enabled
 	commands      map[string]int //map command type to pid, e.g. "stream"->123
+	streamCmd     *exec.Cmd      // command used for streaming
 	isSelfStream  bool           //deprecated
 	streamName    string         // ingest target
 	ingestServer  string         // ingest server e.g. rtmp://user:password@my.server

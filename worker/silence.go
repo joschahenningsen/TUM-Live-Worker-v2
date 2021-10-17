@@ -28,7 +28,6 @@ func (s *SilenceDetect) ParseSilence() error {
 	if err != nil {
 		return err
 	}
-	log.Println(string(output))
 	l := strings.Split(string(output), "\n")
 	var silences []silence
 	for _, str := range l {
@@ -59,7 +58,7 @@ func (s *SilenceDetect) ParseSilence() error {
 	return nil
 }
 
-//postprocess merges short duration of sound into units of silence
+//postprocess merges short duration of silence into units of silence
 func (s *SilenceDetect) postprocess() {
 	oldSilences := *s.Silences
 	if len(oldSilences) < 2 {
