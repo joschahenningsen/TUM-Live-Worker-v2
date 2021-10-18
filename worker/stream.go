@@ -13,7 +13,7 @@ import (
 //stream records and streams a lecture hall to the lrz
 func stream(streamCtx *StreamContext) {
 	// add 10 minutes padding to stream end in case lecturers do lecturer things
-	streamUntil := streamCtx.endTime //.Add(time.Minute * 10)
+	streamUntil := streamCtx.endTime.Add(time.Minute * 10)
 	log.WithFields(log.Fields{"source": streamCtx.sourceUrl, "end": streamUntil, "fileName": streamCtx.getRecordingFileName()}).
 		Info("streaming lecture hall")
 	S.startStream(streamCtx)
@@ -32,7 +32,7 @@ func stream(streamCtx *StreamContext) {
 				"-i", fmt.Sprintf(streamCtx.sourceUrl),
 				"-map", "0", "-c", "copy", "-f", "mpegts", "-", "-c:v", "libx264", "-preset", "veryfast", "-tune", "zerolatency", "-maxrate", "2500k", "-bufsize", "3000k", "-g", "60", "-r", "30", "-x264-params", "keyint=60:scenecut=0", "-c:a", "aac", "-ar", "44100", "-b:a", "128k",
 				"-f", "flv", fmt.Sprintf("%s/%s", streamCtx.ingestServer, streamCtx.streamName))
-		}else{
+		} else {
 			cmd = exec.Command(
 				"ffmpeg", "-hide_banner", "-nostats",
 				"-t", fmt.Sprintf("%.0f", streamUntil.Sub(time.Now()).Seconds()), // timeout ffmpeg when stream is finished
@@ -57,7 +57,7 @@ func stream(streamCtx *StreamContext) {
 			log.WithError(errFfmpegErrFile).Error("Could not create file for ffmpeg stdErr")
 		}
 		err = cmd.Run()
-		if err != nil {
+		if err != nil && !streamCtx.stopped {
 			errorWithBackoff(&lastErr, "Error while streaming (run)", err)
 			if errFfmpegErrFile == nil {
 				_ = ffmpegErr.Close()

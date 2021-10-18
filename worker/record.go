@@ -49,6 +49,7 @@ func record(streamCtx *StreamContext) {
 		err = cmd.Wait()
 		if err != nil {
 			log.WithError(err).Error("Error while recording")
+			time.Sleep(time.Second) // prevent spamming logfiles and smp
 			continue
 		}
 	}

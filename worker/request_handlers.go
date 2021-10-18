@@ -6,6 +6,7 @@ import (
 	"github.com/joschahenningsen/TUM-Live-Worker-v2/pb"
 	log "github.com/sirupsen/logrus"
 	"os/exec"
+	"strings"
 	"time"
 )
 
@@ -42,7 +43,6 @@ func HandleSelfStream(request *pb.SelfStreamResponse, slug string) *StreamContex
 		sourceUrl:     "rtmp://localhost/stream/" + slug,
 		streamName:    request.StreamName,
 	}
-	S.startStream(streamCtx)
 	go stream(streamCtx)
 	return streamCtx
 }
@@ -206,10 +206,10 @@ func (s StreamContext) getStreamName() string {
 // getStreamNameVoD returns the stream name for vod (lrz replaces - with _)
 func (s StreamContext) getStreamNameVoD() string {
 	if !s.isSelfStream {
-		return fmt.Sprintf("%s_%s%s",
+		return strings.ReplaceAll(fmt.Sprintf("%s_%s%s",
 			s.courseSlug,
 			s.startTime.Format("2006_01_02_15_04"),
-			s.streamVersion)
+			s.streamVersion), "-", "_")
 	}
 	return s.courseSlug
 }
