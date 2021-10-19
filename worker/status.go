@@ -110,7 +110,7 @@ func (s *Status) endTranscoding(name string) {
 func (s *Status) endSilenceDetection(streamCtx *StreamContext) {
 	defer s.SendHeartbeat()
 	statusLock.Lock()
-	s.workload -= s.workload
+	s.workload -= costSilenceDetection
 	for i := range s.Jobs {
 		if s.Jobs[i] == fmt.Sprintf("detecting silence in %s", streamCtx.getStreamName()) {
 			s.Jobs = append(s.Jobs[:i], s.Jobs[i+1:]...)
