@@ -44,7 +44,7 @@ func stream(streamCtx *StreamContext) {
 		streamCtx.streamCmd = cmd
 
 		log.WithField("cmd", cmd.String()).Info("Starting stream")
-		outfile, err := os.OpenFile(streamCtx.getRecordingFileName(), os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
+		outfile, err := os.OpenFile(streamCtx.getRecordingFileName(), os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0666)
 		if err != nil {
 			errorWithBackoff(&lastErr, "Unable to create file for recording", err)
 			continue

@@ -39,7 +39,7 @@ func record(streamCtx *StreamContext) {
 				"-c:a", "copy",
 				"-f", "mpegts", "-")
 		}
-		outfile, err := os.OpenFile(streamCtx.getRecordingFileName(), os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
+		outfile, err := os.OpenFile(streamCtx.getRecordingFileName(), os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0666)
 		if err != nil {
 			log.WithError(err).Error("Unable to create file for recording")
 			time.Sleep(time.Second) // sleep a second to prevent high load
