@@ -6,7 +6,10 @@ import (
 	"github.com/joschahenningsen/TUM-Live-Worker-v2/api"
 	"github.com/joschahenningsen/TUM-Live-Worker-v2/selfstream"
 	"github.com/makasim/sentryhook"
+	"github.com/pkg/profile"
 	log "github.com/sirupsen/logrus"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"os/signal"
 	"syscall"
@@ -18,6 +21,11 @@ import (
 var OsSignal chan os.Signal
 
 func main() {
+	defer profile.Start(profile.MemProfile).Stop()
+	go func() {
+		_ = http.ListenAndServe(":8082", nil) // debug endpoint
+	}()
+
 	OsSignal = make(chan os.Signal, 1)
 
 	// log with time, fmt "23.09.2021 10:00:00"
