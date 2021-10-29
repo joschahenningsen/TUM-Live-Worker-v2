@@ -126,6 +126,12 @@ func (s *Status) SendHeartbeat() {
 		log.WithError(err).Error("unable to dial for heartbeat")
 	} else {
 		client := pb.NewFromWorkerClient(server)
+		defer func(server *grpc.ClientConn) {
+			err := server.Close()
+			if err != nil {
+				log.WithError(err).Warn("Can't close status req")
+			}
+		}(server)
 		_, err := client.SendHeartBeat(context.Background(), &pb.HeartBeat{
 			WorkerID: cfg.WorkerID,
 			Workload: uint32(s.workload),
