@@ -9,6 +9,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"sync"
+	"time"
 )
 
 var statusLock = sync.RWMutex{}
@@ -122,23 +123,29 @@ func (s *Status) endSilenceDetection(streamCtx *StreamContext) {
 
 func (s *Status) SendHeartbeat() {
 	// WithInsecure: workerId used for authentication, all servers are inside their own VLAN to further improve security
-	if server, err := grpc.Dial(fmt.Sprintf("%s:50052", cfg.MainBase), grpc.WithInsecure()); err != nil {
+	clientConn, err := grpc.Dial(fmt.Sprintf("%s:50052", cfg.MainBase), grpc.WithInsecure())
+	if err != nil {
 		log.WithError(err).Error("unable to dial for heartbeat")
-	} else {
-		client := pb.NewFromWorkerClient(server)
-		defer func(server *grpc.ClientConn) {
-			err := server.Close()
-			if err != nil {
-				log.WithError(err).Warn("Can't close status req")
-			}
-		}(server)
-		_, err := client.SendHeartBeat(context.Background(), &pb.HeartBeat{
-			WorkerID: cfg.WorkerID,
-			Workload: uint32(s.workload),
-			Jobs:     s.Jobs,
-		})
+		return
+	}
+	client := pb.NewFromWorkerClient(clientConn)
+	defer func(clientConn *grpc.ClientConn) {
+		err := clientConn.Close()
 		if err != nil {
-			log.WithError(err).Error("Sending Heartbeat failed")
+			log.WithError(err).Warn("Can't close status req")
 		}
+	}(clientConn)
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+
+	_, err = client.SendHeartBeat(ctx, &pb.HeartBeat{
+		WorkerID: cfg.WorkerID,
+		Workload: uint32(s.workload),
+		Jobs:     s.Jobs,
+	})
+	if err != nil {
+		log.WithError(err).Error("Sending Heartbeat failed")
+
 	}
 }

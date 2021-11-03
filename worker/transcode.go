@@ -10,7 +10,7 @@ import (
 func transcode(streamCtx *StreamContext) {
 	prepare(streamCtx.getTranscodingFileName())
 	var cmd *exec.Cmd
-	// create command fitting it's content with appropriate niceness:
+	// create command fitting its content with appropriate niceness:
 	in := streamCtx.getRecordingFileName()
 	out := streamCtx.getTranscodingFileName()
 	switch streamCtx.streamVersion {

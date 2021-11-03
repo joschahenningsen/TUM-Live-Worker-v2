@@ -7,18 +7,22 @@ import (
 	"github.com/joschahenningsen/TUM-Live-Worker-v2/pb"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
+	"time"
 )
 
 func notifySilenceResults(silences *[]silence, streamID uint32) {
 	if silences == nil {
 		return
 	}
-
 	client, conn, err := GetClient()
 	if err != nil {
 		log.WithError(err).Error("Unable to dial server")
 		return
 	}
+	defer conn.Close()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+
 	var starts []uint32
 	var ends []uint32
 	sArr := *silences
@@ -27,7 +31,7 @@ func notifySilenceResults(silences *[]silence, streamID uint32) {
 		ends = append(ends, uint32(i.End))
 	}
 
-	_, err = client.NotifySilenceResults(context.Background(), &pb.SilenceResults{
+	_, err = client.NotifySilenceResults(ctx, &pb.SilenceResults{
 		WorkerID: cfg.WorkerID,
 		StreamID: streamID,
 		Starts:   starts,
@@ -36,7 +40,6 @@ func notifySilenceResults(silences *[]silence, streamID uint32) {
 	if err != nil {
 		log.WithError(err).Error("Could not send silence replies")
 	}
-	_ = conn.Close()
 }
 
 func notifyStreamStart(streamCtx *StreamContext) {
@@ -45,7 +48,10 @@ func notifyStreamStart(streamCtx *StreamContext) {
 		log.WithError(err).Error("Unable to dial server")
 		return
 	}
-	resp, err := client.NotifyStreamStarted(context.Background(), &pb.StreamStarted{
+	defer conn.Close()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+	resp, err := client.NotifyStreamStarted(ctx, &pb.StreamStarted{
 		WorkerID:   cfg.WorkerID,
 		StreamID:   streamCtx.streamId,
 		HlsUrl:     fmt.Sprintf("https://live.stream.lrz.de/livetum/smil:%s_all.smil/playlist.m3u8?dvr", streamCtx.streamName),
@@ -54,7 +60,6 @@ func notifyStreamStart(streamCtx *StreamContext) {
 	if err != nil || !resp.Ok {
 		log.WithError(err).Error("Could not notify stream finished")
 	}
-	_ = conn.Close()
 }
 
 func notifyStreamDone(streamID uint32) {
@@ -63,14 +68,16 @@ func notifyStreamDone(streamID uint32) {
 		log.WithError(err).Error("Unable to dial server")
 		return
 	}
-	resp, err := client.NotifyStreamFinished(context.Background(), &pb.StreamFinished{
+	defer conn.Close()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+	resp, err := client.NotifyStreamFinished(ctx, &pb.StreamFinished{
 		WorkerID: cfg.WorkerID,
 		StreamID: streamID,
 	})
 	if err != nil || !resp.Ok {
 		log.WithError(err).Error("Could not notify stream finished")
 	}
-	_ = conn.Close()
 }
 
 func notifyTranscodingDone(streamCtx *StreamContext) {
@@ -79,7 +86,10 @@ func notifyTranscodingDone(streamCtx *StreamContext) {
 		log.WithError(err).Error("Unable to dial server")
 		return
 	}
-	resp, err := client.NotifyTranscodingFinished(context.Background(), &pb.TranscodingFinished{
+	defer conn.Close()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+	resp, err := client.NotifyTranscodingFinished(ctx, &pb.TranscodingFinished{
 		WorkerID: cfg.WorkerID,
 		StreamID: streamCtx.streamId,
 		FilePath: streamCtx.getTranscodingFileName(),
@@ -87,7 +97,6 @@ func notifyTranscodingDone(streamCtx *StreamContext) {
 	if err != nil || !resp.Ok {
 		log.WithError(err).Error("Could not notify stream finished")
 	}
-	_ = conn.Close()
 }
 
 func notifyUploadDone(streamCtx *StreamContext) {
@@ -96,7 +105,10 @@ func notifyUploadDone(streamCtx *StreamContext) {
 		log.WithError(err).Error("Unable to dial server")
 		return
 	}
-	resp, err := client.NotifyUploadFinished(context.Background(), &pb.UploadFinished{
+	defer conn.Close()
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+	resp, err := client.NotifyUploadFinished(ctx, &pb.UploadFinished{
 		WorkerID:   cfg.WorkerID,
 		StreamID:   streamCtx.streamId,
 		HLSUrl:     fmt.Sprintf("https://stream.lrz.de/vod/_definst_/mp4:tum/RBG/%s.mp4/playlist.m3u8", streamCtx.getStreamNameVoD()),
@@ -105,7 +117,6 @@ func notifyUploadDone(streamCtx *StreamContext) {
 	if err != nil || !resp.Ok {
 		log.WithError(err).Error("Could not notify upload finished")
 	}
-	_ = conn.Close()
 }
 
 func GetClient() (pb.FromWorkerClient, *grpc.ClientConn, error) {
