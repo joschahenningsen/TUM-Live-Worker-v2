@@ -9,32 +9,37 @@ import (
 	"mime/multipart"
 	"net/http"
 	"os"
-	"strings"
+	"os/exec"
 )
 
 func upload(streamCtx *StreamContext) {
-	f, err := os.Open(streamCtx.getTranscodingFileName())
+	log.WithField("stream", streamCtx.getStreamName()).Info("Uploading stream")
+	err := post(streamCtx.getTranscodingFileName())
 	if err != nil {
-		log.Printf("unable to open converted file for upload: %v", err)
-		return
-	}
-	values := map[string]io.Reader{
-		"filename":    f,
-		"benutzer":    strings.NewReader(cfg.LrzUser),
-		"mailadresse": strings.NewReader(cfg.LrzMail),
-		"telefon":     strings.NewReader(cfg.LrzPhone),
-		"unidir":      strings.NewReader("tum"),
-		"subdir":      strings.NewReader(cfg.LrzSubDir),
-		"info":        strings.NewReader(""),
-	}
-	err = PostFileUpload(cfg.LrzUploadUrl, values)
-	if err != nil {
-		log.WithError(err).Error("Can't upload video to lrz")
-		return
-	}
+        log.WithField("stream", streamCtx.getStreamName()).WithError(err).Error("Error uploading stream")
+    }
+	log.WithField("stream", streamCtx.getStreamName()).Info("Uploaded stream")
 }
 
-// PostFileUpload - example kindly provided by Attila O. Thanks buddy!
+// post a file via curl
+func post(file string) error {
+	cmd := exec.Command("curl", "-F",
+		"file=@"+file,
+		"-F", "benutzer="+cfg.LrzUser,
+		"-F", "mailadresse="+cfg.LrzMail,
+		"-F", "telefon="+cfg.LrzPhone,
+		"-F", "unidir=tum",
+		"-F", "subdir="+cfg.LrzSubDir,
+		"-F", "info=",
+		cfg.LrzUploadUrl)
+	_, err := cmd.CombinedOutput()
+	if err != nil {
+        return err
+    }
+	return nil
+}
+
+// PostFileUpload deprecated - example kindly provided by Attila O. Thanks buddy!
 func PostFileUpload(url string, values map[string]io.Reader) (err error) {
 	client := http.DefaultClient
 	// Prepare a form that you will submit to that URL.

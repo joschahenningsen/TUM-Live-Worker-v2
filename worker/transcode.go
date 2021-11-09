@@ -30,6 +30,8 @@ func transcode(streamCtx *StreamContext) {
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		log.WithFields(log.Fields{"output": string(output)}).WithError(err).Error("Failed to process stream")
+	} else {
+		log.WithField("stream", streamCtx.getStreamName()).Info("Transcoding finished")
 	}
 }
 

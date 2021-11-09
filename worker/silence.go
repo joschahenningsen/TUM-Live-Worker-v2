@@ -51,10 +51,7 @@ func (s *SilenceDetect) ParseSilence() error {
 
 	s.Silences = &silences
 	s.postprocess()
-	slc := *s.Silences
-	for _, silence := range slc {
-		log.Printf("%v, %v", silence.Start, silence.End)
-	}
+	log.WithField("file", s.Input).Info("Silences detected")
 	return nil
 }
 

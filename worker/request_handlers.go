@@ -106,11 +106,9 @@ func HandleStreamRequest(request *pb.StreamRequest) {
 	//only record
 	if !streamCtx.stream {
 		S.startRecording(streamCtx.getRecordingFileName())
-		log.Info("only recording")
 		record(streamCtx)
 		S.endRecording(streamCtx.getRecordingFileName())
 	} else {
-		log.Info("record and stream")
 		stream(streamCtx)
 	}
 	// notify stream/recording done
@@ -125,16 +123,18 @@ func HandleStreamRequest(request *pb.StreamRequest) {
 		upload(streamCtx)
 		notifyUploadDone(streamCtx)
 	}
-	S.startSilenceDetection(streamCtx)
-	defer S.endSilenceDetection(streamCtx)
 
-	sd := NewSilenceDetector(streamCtx.getTranscodingFileName())
-	err := sd.ParseSilence()
-	if err != nil {
-		log.WithField("File", streamCtx.getTranscodingFileName()).WithError(err).Error("Detecting silence failed.")
-		return
+	if streamCtx.streamVersion == "COMB" {
+		S.startSilenceDetection(streamCtx)
+		defer S.endSilenceDetection(streamCtx)
+		sd := NewSilenceDetector(streamCtx.getTranscodingFileName())
+		err := sd.ParseSilence()
+		if err != nil {
+			log.WithField("File", streamCtx.getTranscodingFileName()).WithError(err).Error("Detecting silence failed.")
+			return
+		}
+		notifySilenceResults(sd.Silences, streamCtx.streamId)
 	}
-	notifySilenceResults(sd.Silences, streamCtx.streamId)
 }
 
 // StreamContext contains all important information on a stream
