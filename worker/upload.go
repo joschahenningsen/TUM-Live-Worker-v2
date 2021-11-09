@@ -24,7 +24,7 @@ func upload(streamCtx *StreamContext) {
 // post a file via curl
 func post(file string) error {
 	cmd := exec.Command("curl", "-F",
-		"file=@"+file,
+		"filename=@"+file,
 		"-F", "benutzer="+cfg.LrzUser,
 		"-F", "mailadresse="+cfg.LrzMail,
 		"-F", "telefon="+cfg.LrzPhone,
