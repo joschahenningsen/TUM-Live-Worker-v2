@@ -23,7 +23,7 @@ func record(streamCtx *StreamContext) {
 		if strings.Contains(streamCtx.sourceUrl, "rtsp") {
 			cmd = exec.Command(
 				"ffmpeg", "-nostats", "-rtsp_transport", "tcp",
-				"-t", fmt.Sprintf("%.0f", recordUntil.Sub(time.Now()).Seconds()), // timeout ffmpeg when stream is finished
+				"-t", fmt.Sprintf("%.0f", time.Until(recordUntil).Seconds()), // timeout ffmpeg when stream is finished
 				"-i", streamCtx.sourceUrl,
 				"-map", "0",
 				"-c:v", "copy",
@@ -32,7 +32,7 @@ func record(streamCtx *StreamContext) {
 		} else {
 			cmd = exec.Command(
 				"ffmpeg", "-nostats",
-				"-t", fmt.Sprintf("%.0f", recordUntil.Sub(time.Now()).Seconds()), // timeout ffmpeg when stream is finished
+				"-t", fmt.Sprintf("%.0f", time.Until(recordUntil).Seconds()), // timeout ffmpeg when stream is finished
 				"-i", streamCtx.sourceUrl,
 				"-map", "0",
 				"-c:v", "copy",
