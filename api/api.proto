@@ -24,6 +24,7 @@ message StreamRequest {
   uint32 CourseYear = 12;
   string StreamName = 13;
   string IngestServer = 14;
+  string OutUrl = 15;
 }
 
 message PremiereRequest {
@@ -64,6 +65,7 @@ message SelfStreamResponse {
   bool uploadVoD = 6;
   string IngestServer = 7;
   string StreamName = 8;
+  string OutUrl = 9;
 }
 
 message HeartBeat {
