@@ -20,6 +20,7 @@ func HandlePremiere(request *pb.PremiereRequest) {
 		stream:        true,
 		commands:      nil,
 		ingestServer:  request.IngestServer,
+		outUrl:        request.OutUrl,
 	}
 	S.startStream(streamCtx)
 	streamPremiere(streamCtx)
@@ -42,6 +43,7 @@ func HandleSelfStream(request *pb.SelfStreamResponse, slug string) *StreamContex
 		ingestServer:  request.IngestServer,
 		sourceUrl:     "rtmp://localhost/stream/" + slug,
 		streamName:    request.StreamName,
+		outUrl:        request.OutUrl,
 	}
 	go stream(streamCtx)
 	return streamCtx
@@ -101,6 +103,7 @@ func HandleStreamRequest(request *pb.StreamRequest) {
 		streamName:    request.GetStreamName(),
 		ingestServer:  request.GetIngestServer(),
 		isSelfStream:  false,
+		outUrl:        request.GetOutUrl(),
 	}
 
 	//only record
@@ -154,7 +157,8 @@ type StreamContext struct {
 	isSelfStream  bool           //deprecated
 	streamName    string         // ingest target
 	ingestServer  string         // ingest server e.g. rtmp://user:password@my.server
-	stopped       bool
+	stopped       bool           // whether the stream has been stopped
+	outUrl        string         // url the stream will be available at
 }
 
 // getRecordingFileName returns the filename a stream should be saved to before transcoding.

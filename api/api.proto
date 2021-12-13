@@ -33,6 +33,7 @@ message PremiereRequest {
   string WorkerID = 3;
   string StreamName = 4;
   string IngestServer = 5;
+  string OutUrl = 6;
 }
 
 message Status {
