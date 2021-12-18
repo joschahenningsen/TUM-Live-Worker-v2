@@ -1,0 +1,33 @@
+version: "3.9"
+services:
+  nginx :
+    build: nginx
+    ports:
+      - "1935:1935"
+      - "8085:8085"
+    volumes:
+      - /recordings/:/recordings/
+      - /srv/cephfs/:/srv/cephfs/
+      - /hls/:/hls/
+    restart: always
+  worker:
+    build: .
+    ports:
+      - "8060:8060"
+      - "8082:8082"
+      - "50051:50051"
+    volumes:
+      - /recordings/:/recordings/
+      - /srv/cephfs/:/srv/cephfs/
+    env_file:
+      - example.env
+networks:
+  bridge:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.10.0.1/24
+
+volumes:
+  ceph: {}
+  recordings: {}

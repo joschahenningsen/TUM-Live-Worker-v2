@@ -11,6 +11,7 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 	"os"
+	"os/exec"
 	"os/signal"
 	"syscall"
 	"time"
@@ -20,7 +21,30 @@ import (
 // Application exits when it's terminating (kill, int, sigusr, term)
 var OsSignal chan os.Signal
 
+//prepare checks if the required dependencies are installed
+func prepare(){
+	//check if ffmpeg is installed
+    _, err := exec.LookPath("ffmpeg")
+    if err != nil {
+        log.Fatal("ffmpeg is not installed")
+    }
+    //check if curl is installed
+    _, err = exec.LookPath("curl")
+    if err != nil {
+        log.Fatal("curl is not installed")
+    }
+}
+
 func main() {
+	prepare()
+	//list files in directory
+	dir, err := os.ReadDir("/recordings")
+	if err != nil {
+		log.WithError(err).Error("cant read dir")
+	}
+	for _, d := range dir {
+		fmt.Println(d.Name())
+	}
 	defer profile.Start(profile.MemProfile).Stop()
 	go func() {
 		_ = http.ListenAndServe(":8082", nil) // debug endpoint
