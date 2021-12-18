@@ -1,6 +1,6 @@
 FROM golang:1.17-alpine3.14
 
-RUN apk add ffmpeg curl
+RUN apk add ffmpeg curl bash
 
 WORKDIR /go/src/github.com/joschahenningsen/TUM-Live-Worker-v2
 COPY . .

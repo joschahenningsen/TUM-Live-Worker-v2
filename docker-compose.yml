@@ -9,6 +9,7 @@ services:
       - /recordings/:/recordings/
       - /srv/cephfs/:/srv/cephfs/
       - /hls/:/hls/
+      - /var/log:/var/log/liveWorker/
     restart: always
   worker:
     build: .
