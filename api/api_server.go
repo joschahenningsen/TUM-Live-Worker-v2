@@ -3,6 +3,9 @@ package api
 import (
 	"context"
 	"errors"
+	"net"
+	"time"
+
 	"github.com/joschahenningsen/TUM-Live-Worker-v2/cfg"
 	"github.com/joschahenningsen/TUM-Live-Worker-v2/pb"
 	"github.com/joschahenningsen/TUM-Live-Worker-v2/worker"
@@ -10,8 +13,6 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/reflection"
-	"net"
-	"time"
 )
 
 type server struct {
@@ -33,6 +34,15 @@ func (s server) RequestPremiere(ctx context.Context, request *pb.PremiereRequest
 		return &pb.Status{Ok: false}, errors.New("unauthenticated: wrong worker id")
 	}
 	go worker.HandlePremiere(request)
+	return &pb.Status{Ok: true}, nil
+}
+
+func (s server) RequestEnd(ctx context.Context, request *pb.EndStreamRequest) (*pb.Status, error) {
+	if request.WorkerID != cfg.WorkerID {
+		log.Info("Rejected request to end stream")
+		return &pb.Status{Ok: false}, errors.New("unauthenticated: wrong worker id")
+	}
+	go worker.HandleStreamEndRequest(request)
 	return &pb.Status{Ok: true}, nil
 }
 

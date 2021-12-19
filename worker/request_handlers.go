@@ -2,12 +2,13 @@ package worker
 
 import (
 	"fmt"
-	"github.com/joschahenningsen/TUM-Live-Worker-v2/cfg"
-	"github.com/joschahenningsen/TUM-Live-Worker-v2/pb"
-	log "github.com/sirupsen/logrus"
 	"os/exec"
 	"strings"
 	"time"
+
+	"github.com/joschahenningsen/TUM-Live-Worker-v2/cfg"
+	"github.com/joschahenningsen/TUM-Live-Worker-v2/pb"
+	log "github.com/sirupsen/logrus"
 )
 
 func HandlePremiere(request *pb.PremiereRequest) {
@@ -47,6 +48,30 @@ func HandleSelfStream(request *pb.SelfStreamResponse, slug string) *StreamContex
 	}
 	go stream(streamCtx)
 	return streamCtx
+}
+
+func HandleStreamEndRequest(request *pb.EndStreamRequest) {
+	ctx := &StreamContext{
+		streamId:      request.GetStreamID(),
+		stream:        true,
+		streamName:    request.GetStreamName(),
+		streamVersion: "COMB",
+		isSelfStream:  false,
+	}
+
+	// Kill ffmpeg
+	ctx.stopped = true
+	if ctx.streamCmd != nil && ctx.streamCmd.Process != nil {
+		err := ctx.streamCmd.Process.Kill()
+		if err != nil {
+			log.WithError(err).Warn("can't kill ffmpeg")
+		}
+	}
+	// Update status
+	S.endStream(ctx)
+
+	// Notify TUM-Live instance about killed stream
+	notifyStreamDone(ctx.streamId)
 }
 
 func HandleSelfStreamRecordEnd(ctx *StreamContext) {
