@@ -37,10 +37,10 @@ func (s server) RequestPremiere(ctx context.Context, request *pb.PremiereRequest
 	return &pb.Status{Ok: true}, nil
 }
 
-func (s server) RequestEnd(ctx context.Context, request *pb.EndStreamRequest) (*pb.Status, error) {
+func (s server) RequestStreamEnd(ctx context.Context, request *pb.EndStreamRequest) (*pb.Status, error) {
 	if request.WorkerID != cfg.WorkerID {
 		log.Info("Rejected request to end stream")
-		return &pb.Status{Ok: false}, errors.New("unauthenticated: wrong worker id")
+		//return &pb.Status{Ok: false}, errors.New("unauthenticated: wrong worker id")
 	}
 	go worker.HandleStreamEndRequest(request)
 	return &pb.Status{Ok: true}, nil
