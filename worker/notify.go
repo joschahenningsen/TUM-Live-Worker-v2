@@ -10,6 +10,15 @@ import (
 	"time"
 )
 
+func closeConnection(conn *grpc.ClientConn) {
+	func(conn *grpc.ClientConn) {
+		err := conn.Close()
+		if err != nil {
+			log.WithError(err).Error("Could not close connection")
+		}
+	}(conn)
+}
+
 func notifySilenceResults(silences *[]silence, streamID uint32) {
 	if silences == nil {
 		return
@@ -19,7 +28,7 @@ func notifySilenceResults(silences *[]silence, streamID uint32) {
 		log.WithError(err).Error("Unable to dial server")
 		return
 	}
-	defer conn.Close()
+	defer closeConnection(conn)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 
@@ -48,12 +57,12 @@ func notifyStreamStart(streamCtx *StreamContext) {
 		log.WithError(err).Error("Unable to dial server")
 		return
 	}
-	defer conn.Close()
+	defer closeConnection(conn)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 	resp, err := client.NotifyStreamStarted(ctx, &pb.StreamStarted{
-		WorkerID: cfg.WorkerID,
-		StreamID: streamCtx.streamId,
+		WorkerID:   cfg.WorkerID,
+		StreamID:   streamCtx.streamId,
 		HlsUrl:     fmt.Sprintf(streamCtx.outUrl, streamCtx.streamName), // could look like: fmt.Sprintf("https://live.stream.lrz.de/livetum/smil:%s_all.smil/playlist.m3u8?dvr", streamCtx.streamName)
 		SourceType: streamCtx.streamVersion,
 	})
@@ -68,7 +77,7 @@ func notifyStreamDone(streamID uint32) {
 		log.WithError(err).Error("Unable to dial server")
 		return
 	}
-	defer conn.Close()
+	defer closeConnection(conn)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 	resp, err := client.NotifyStreamFinished(ctx, &pb.StreamFinished{
@@ -86,7 +95,7 @@ func notifyTranscodingDone(streamCtx *StreamContext) {
 		log.WithError(err).Error("Unable to dial server")
 		return
 	}
-	defer conn.Close()
+	defer closeConnection(conn)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 	resp, err := client.NotifyTranscodingFinished(ctx, &pb.TranscodingFinished{
@@ -105,7 +114,7 @@ func notifyUploadDone(streamCtx *StreamContext) {
 		log.WithError(err).Error("Unable to dial server")
 		return
 	}
-	defer conn.Close()
+	defer closeConnection(conn)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 	resp, err := client.NotifyUploadFinished(ctx, &pb.UploadFinished{
