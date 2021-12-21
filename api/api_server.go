@@ -30,7 +30,7 @@ func (s server) RequestStream(ctx context.Context, request *pb.StreamRequest) (*
 
 func (s server) RequestPremiere(ctx context.Context, request *pb.PremiereRequest) (*pb.Status, error) {
 	if request.WorkerID != cfg.WorkerID {
-		log.Info("Rejected request to stream")
+		log.Info("Rejected request for premiere")
 		return &pb.Status{Ok: false}, errors.New("unauthenticated: wrong worker id")
 	}
 	go worker.HandlePremiere(request)
@@ -40,7 +40,7 @@ func (s server) RequestPremiere(ctx context.Context, request *pb.PremiereRequest
 func (s server) RequestStreamEnd(ctx context.Context, request *pb.EndStreamRequest) (*pb.Status, error) {
 	if request.WorkerID != cfg.WorkerID {
 		log.Info("Rejected request to end stream")
-		//return &pb.Status{Ok: false}, errors.New("unauthenticated: wrong worker id")
+		return &pb.Status{Ok: false}, errors.New("unauthenticated: wrong worker id")
 	}
 	go worker.HandleStreamEndRequest(request)
 	return &pb.Status{Ok: true}, nil
