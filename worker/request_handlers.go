@@ -52,23 +52,23 @@ func HandleSelfStream(request *pb.SelfStreamResponse, slug string) *StreamContex
 
 func HandleStreamEndRequest(request *pb.EndStreamRequest) {
 	ctx := &StreamContext{
-		streamId:      request.GetStreamID(),
+		streamId:      request.GetStreamID(), // for notifyStreamDone
 		stream:        true,
-		streamName:    request.GetStreamName(),
+		streamName:    request.GetStreamName(), // for endStream
 		streamVersion: "COMB",
-		isSelfStream:  false,
 	}
+	// Update status
+	S.endStream(ctx)
 
 	// Kill ffmpeg
-	ctx.stopped = true
 	if ctx.streamCmd != nil && ctx.streamCmd.Process != nil {
 		err := ctx.streamCmd.Process.Kill()
 		if err != nil {
 			log.WithError(err).Warn("can't kill ffmpeg")
 		}
 	}
-	// Update status
-	S.endStream(ctx)
+
+	ctx.stopped = true
 
 	// Notify TUM-Live instance about killed stream
 	notifyStreamDone(ctx.streamId)
