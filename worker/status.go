@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"github.com/joschahenningsen/TUM-Live-Worker-v2/cfg"
 	"github.com/joschahenningsen/TUM-Live-Worker-v2/pb"
+	"github.com/joschahenningsen/TUM-Live-Worker-v2/worker/vmstat"
 	"github.com/robfig/cron/v3"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
+	"strings"
 	"sync"
 	"time"
 )
@@ -16,12 +18,21 @@ var statusLock = sync.RWMutex{}
 var S *Status
 
 func init() {
+	stat := vmstat.New()
 	S = &Status{
-		workload: 0,
-		Jobs:     []string{},
+		workload:  0,
+		StartTime: time.Now(),
+		Jobs:      []string{},
+		Stat:      stat,
 	}
 	c := cron.New()
 	_, _ = c.AddFunc("* * * * *", S.SendHeartbeat)
+	_, _ = c.AddFunc("* * * * *", func() {
+		err := S.Stat.Update()
+		if err != nil {
+			log.WithError(err).Warn("Failed to update vmstat")
+		}
+	})
 	c.Start()
 }
 
@@ -32,8 +43,12 @@ const (
 )
 
 type Status struct {
-	workload uint
-	Jobs     []string
+	workload  uint
+	Jobs      []string
+	StartTime time.Time
+
+	// VM Metrics are updated regularly
+	Stat *vmstat.VmStat
 }
 
 func (s *Status) startSilenceDetection(streamCtx *StreamContext) {
@@ -122,6 +137,7 @@ func (s *Status) endSilenceDetection(streamCtx *StreamContext) {
 }
 
 func (s *Status) SendHeartbeat() {
+	log.Info("stats: ", s.Stat.String())
 	// WithInsecure: workerId used for authentication, all servers are inside their own VLAN to further improve security
 	clientConn, err := grpc.Dial(fmt.Sprintf("%s:50052", cfg.MainBase), grpc.WithInsecure())
 	if err != nil {
@@ -143,9 +159,13 @@ func (s *Status) SendHeartbeat() {
 		WorkerID: cfg.WorkerID,
 		Workload: uint32(s.workload),
 		Jobs:     s.Jobs,
+		Version:  "dev",
+		CPU:      s.Stat.GetCpuStr(),
+		Memory:   s.Stat.GetMemStr(),
+		Disk:     s.Stat.GetDiskStr(),
+		Uptime:   strings.ReplaceAll(time.Since(s.StartTime).Round(time.Minute).String(), "0s", ""),
 	})
 	if err != nil {
 		log.WithError(err).Error("Sending Heartbeat failed")
-
 	}
 }
