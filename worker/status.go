@@ -16,6 +16,7 @@ import (
 
 var statusLock = sync.RWMutex{}
 var S *Status
+var VersionTag string
 
 func init() {
 	stat := vmstat.New()
@@ -137,7 +138,6 @@ func (s *Status) endSilenceDetection(streamCtx *StreamContext) {
 }
 
 func (s *Status) SendHeartbeat() {
-	log.Info("stats: ", s.Stat.String())
 	// WithInsecure: workerId used for authentication, all servers are inside their own VLAN to further improve security
 	clientConn, err := grpc.Dial(fmt.Sprintf("%s:50052", cfg.MainBase), grpc.WithInsecure())
 	if err != nil {
@@ -159,7 +159,7 @@ func (s *Status) SendHeartbeat() {
 		WorkerID: cfg.WorkerID,
 		Workload: uint32(s.workload),
 		Jobs:     s.Jobs,
-		Version:  "dev",
+		Version:  VersionTag,
 		CPU:      s.Stat.GetCpuStr(),
 		Memory:   s.Stat.GetMemStr(),
 		Disk:     s.Stat.GetDiskStr(),

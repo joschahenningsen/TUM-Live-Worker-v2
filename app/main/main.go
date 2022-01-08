@@ -5,6 +5,7 @@ import (
 	"github.com/getsentry/sentry-go"
 	"github.com/joschahenningsen/TUM-Live-Worker-v2/api"
 	"github.com/joschahenningsen/TUM-Live-Worker-v2/selfstream"
+	"github.com/joschahenningsen/TUM-Live-Worker-v2/worker"
 	"github.com/makasim/sentryhook"
 	"github.com/pkg/profile"
 	log "github.com/sirupsen/logrus"
@@ -20,23 +21,25 @@ import (
 // OsSignal contains the current os signal received.
 // Application exits when it's terminating (kill, int, sigusr, term)
 var OsSignal chan os.Signal
+var VersionTag = "dev"
 
 //prepare checks if the required dependencies are installed
-func prepare(){
+func prepare() {
 	//check if ffmpeg is installed
-    _, err := exec.LookPath("ffmpeg")
-    if err != nil {
-        log.Fatal("ffmpeg is not installed")
-    }
-    //check if curl is installed
-    _, err = exec.LookPath("curl")
-    if err != nil {
-        log.Fatal("curl is not installed")
-    }
+	_, err := exec.LookPath("ffmpeg")
+	if err != nil {
+		log.Fatal("ffmpeg is not installed")
+	}
+	//check if curl is installed
+	_, err = exec.LookPath("curl")
+	if err != nil {
+		log.Fatal("curl is not installed")
+	}
 }
 
 func main() {
 	prepare()
+	worker.VersionTag = VersionTag
 	//list files in directory
 	dir, err := os.ReadDir("/recordings")
 	if err != nil {
