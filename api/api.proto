@@ -89,6 +89,7 @@ message TranscodingFinished {
   string WorkerID = 1;
   uint32 StreamID = 2;
   string FilePath = 3;
+  uint32 Duration = 4;
 }
 
 message UploadFinished {

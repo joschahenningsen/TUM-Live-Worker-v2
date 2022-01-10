@@ -52,8 +52,8 @@ func notifyStreamStart(streamCtx *StreamContext) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 	resp, err := client.NotifyStreamStarted(ctx, &pb.StreamStarted{
-		WorkerID: cfg.WorkerID,
-		StreamID: streamCtx.streamId,
+		WorkerID:   cfg.WorkerID,
+		StreamID:   streamCtx.streamId,
 		HlsUrl:     fmt.Sprintf(streamCtx.outUrl, streamCtx.streamName), // could look like: fmt.Sprintf("https://live.stream.lrz.de/livetum/smil:%s_all.smil/playlist.m3u8?dvr", streamCtx.streamName)
 		SourceType: streamCtx.streamVersion,
 	})
@@ -93,6 +93,7 @@ func notifyTranscodingDone(streamCtx *StreamContext) {
 		WorkerID: cfg.WorkerID,
 		StreamID: streamCtx.streamId,
 		FilePath: streamCtx.getTranscodingFileName(),
+		Duration: streamCtx.duration,
 	})
 	if err != nil || !resp.Ok {
 		log.WithError(err).Error("Could not notify stream finished")

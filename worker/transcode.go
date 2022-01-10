@@ -33,6 +33,14 @@ func transcode(streamCtx *StreamContext) {
 	} else {
 		log.WithField("stream", streamCtx.getStreamName()).Info("Transcoding finished")
 	}
+	log.Info("Start Probing duration")
+	duration, err := getDuration(streamCtx.getTranscodingFileName())
+	if err != nil {
+		log.WithError(err).Error("Failed to probe duration")
+	} else {
+		streamCtx.duration = uint32(duration)
+		log.WithField("duration", duration).Info("Probing duration finished")
+	}
 }
 
 // creates folder for output file if it doesn't exist
