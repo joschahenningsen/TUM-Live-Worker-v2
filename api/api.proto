@@ -81,6 +81,11 @@ message HeartBeat {
   string WorkerID = 1;
   uint32 Workload = 2;
   repeated string Jobs = 3;
+  string Version = 4;
+  string CPU = 5;
+  string Memory = 6;
+  string Disk = 7;
+  string Uptime = 8;
 }
 
 message StreamFinished {
@@ -92,6 +97,7 @@ message TranscodingFinished {
   string WorkerID = 1;
   uint32 StreamID = 2;
   string FilePath = 3;
+  uint32 Duration = 4;
 }
 
 message UploadFinished {

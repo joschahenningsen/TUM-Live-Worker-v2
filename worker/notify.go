@@ -102,6 +102,7 @@ func notifyTranscodingDone(streamCtx *StreamContext) {
 		WorkerID: cfg.WorkerID,
 		StreamID: streamCtx.streamId,
 		FilePath: streamCtx.getTranscodingFileName(),
+		Duration: streamCtx.duration,
 	})
 	if err != nil || !resp.Ok {
 		log.WithError(err).Error("Could not notify stream finished")

@@ -184,6 +184,9 @@ type StreamContext struct {
 	ingestServer  string         // ingest server e.g. rtmp://user:password@my.server
 	stopped       bool           // whether the stream has been stopped
 	outUrl        string         // url the stream will be available at
+
+	// calculated after stream:
+	duration uint32 //duration of the stream in seconds
 }
 
 // getRecordingFileName returns the filename a stream should be saved to before transcoding.
