@@ -35,7 +35,7 @@ func onPublishDone(c *gin.Context) {
 	}
 	if streamCtx, ok := streams[streamKey]; ok {
 		go func() {
-			worker.HandleSelfStreamEnd(streamCtx)
+			worker.HandleStreamEnd(streamCtx)
 			worker.HandleSelfStreamRecordEnd(streamCtx)
 		}()
 	} else {

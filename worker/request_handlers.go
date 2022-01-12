@@ -11,6 +11,10 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+// lectureHallStreams contains a map from streaming keys to their contexts.
+// Note that we can have multiple contexts for different sources.
+var lectureHallStreams = make(map[uint32][]*StreamContext)
+
 func HandlePremiere(request *pb.PremiereRequest) {
 	streamCtx := &StreamContext{
 		streamId:      request.StreamID,
@@ -50,30 +54,6 @@ func HandleSelfStream(request *pb.SelfStreamResponse, slug string) *StreamContex
 	return streamCtx
 }
 
-func HandleStreamEndRequest(request *pb.EndStreamRequest) {
-	ctx := &StreamContext{
-		streamId:      request.GetStreamID(), // for notifyStreamDone
-		stream:        true,
-		streamName:    request.GetStreamName(), // for endStream
-		streamVersion: "COMB",
-	}
-	// Update status
-	S.endStream(ctx)
-
-	// Kill ffmpeg
-	if ctx.streamCmd != nil && ctx.streamCmd.Process != nil {
-		err := ctx.streamCmd.Process.Kill()
-		if err != nil {
-			log.WithError(err).Warn("can't kill ffmpeg")
-		}
-	}
-
-	ctx.stopped = true
-
-	// Notify TUM-Live instance about killed stream
-	notifyStreamDone(ctx.streamId)
-}
-
 func HandleSelfStreamRecordEnd(ctx *StreamContext) {
 	S.startTranscoding(ctx.getStreamName())
 	transcode(ctx)
@@ -95,24 +75,49 @@ func HandleSelfStreamRecordEnd(ctx *StreamContext) {
 	notifySilenceResults(sd.Silences, ctx.streamId)
 }
 
-//HandleSelfStreamEnd stops the ffmpeg instance by sending a SIGINT to it and prevents the loop to restart it by marking the stream context as stopped.
-func HandleSelfStreamEnd(ctx *StreamContext) {
+func HandleStreamEndRequest(request *pb.EndStreamRequest) {
+	log.Println("Attempting to end stream: ", request.StreamID)
+	streams := lectureHallStreams[request.StreamID]
+	for streamIndex := range streams {
+		streamCtx := streams[streamIndex]
+		if streamCtx.isSelfStream {
+			log.Error("Unexpected self stream end request.")
+			continue
+		}
+		HandleStreamEnd(streamCtx)
+	}
+}
+
+//HandleStreamEnd stops the ffmpeg instance by sending a SIGINT to it and prevents the loop to restart it by marking the stream context as stopped.
+func HandleStreamEnd(ctx *StreamContext) {
 	ctx.stopped = true
 	if ctx.streamCmd != nil && ctx.streamCmd.Process != nil {
 		err := ctx.streamCmd.Process.Kill()
 		if err != nil {
-			log.WithError(err).Warn("can't kill self-stream ffmpeg")
+			log.WithError(err).Warn("can't kill ffmpeg process")
 		}
 	} else {
-		log.Warn("self-stream context has no command on stream end")
+		log.Warn("context has no command or process to end")
 	}
 	S.endStream(ctx)
 	notifyStreamDone(ctx.streamId)
+	lectureHallStreams[ctx.streamId] = remove(lectureHallStreams[ctx.streamId], ctx)
+}
+
+func remove(contexts []*StreamContext, context *StreamContext) []*StreamContext {
+	var newContexts []*StreamContext
+
+	for _, i := range contexts {
+		if i.sourceUrl != context.sourceUrl {
+			newContexts = append(newContexts, i)
+		}
+	}
+	log.Println("Removed stream with source: ", context.sourceUrl)
+	return newContexts
 }
 
 func HandleStreamRequest(request *pb.StreamRequest) {
 	log.WithField("request", request).Info("Request to stream")
-
 	//setup context with relevant information to pass to other subprocesses
 	streamCtx := &StreamContext{
 		streamId:      request.GetStreamID(),
@@ -225,6 +230,7 @@ func (s StreamContext) getTranscodingFileName() string {
 		s.getStreamName())
 }
 
+// getStreamName returns the stream name, used for the worker status
 func (s StreamContext) getStreamName() string {
 	if !s.isSelfStream {
 		return fmt.Sprintf("%s-%s%s",

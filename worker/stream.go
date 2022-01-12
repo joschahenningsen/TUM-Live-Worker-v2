@@ -60,6 +60,11 @@ func stream(streamCtx *StreamContext) {
 		if errFfmpegErrFile == nil {
 			_ = ffmpegErr.Close()
 		}
+		// Stream start seems to be successful, so we can save the stream
+		// This request is only used for lecture hall streams
+		if !streamCtx.isSelfStream {
+			lectureHallStreams[streamCtx.streamId] = append(lectureHallStreams[streamCtx.streamId], streamCtx)
+		}
 	}
 	streamCtx.streamCmd = nil
 }

@@ -41,7 +41,6 @@ message PremiereRequest {
 message EndStreamRequest {
   uint32 StreamID = 1;
   string WorkerID = 2;
-  string StreamName = 3;
 }
 
 message Status {
