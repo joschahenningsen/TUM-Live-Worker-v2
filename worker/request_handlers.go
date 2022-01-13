@@ -15,6 +15,8 @@ import (
 // Note that we can have multiple contexts for different sources.
 var lectureHallStreams = make(map[uint32][]*StreamContext)
 
+var shouldDiscardVoD = make(map[uint32]bool)
+
 func HandlePremiere(request *pb.PremiereRequest) {
 	streamCtx := &StreamContext{
 		streamId:      request.StreamID,
@@ -26,6 +28,10 @@ func HandlePremiere(request *pb.PremiereRequest) {
 		commands:      nil,
 		ingestServer:  request.IngestServer,
 		outUrl:        request.OutUrl,
+	}
+	// Register worker for premiere
+	if !streamCtx.isSelfStream {
+		lectureHallStreams[streamCtx.streamId] = append(lectureHallStreams[streamCtx.streamId], streamCtx)
 	}
 	S.startStream(streamCtx)
 	streamPremiere(streamCtx)
@@ -76,14 +82,20 @@ func HandleSelfStreamRecordEnd(ctx *StreamContext) {
 }
 
 func HandleStreamEndRequest(request *pb.EndStreamRequest) {
-	log.Println("Attempting to end stream: ", request.StreamID)
+	log.Info("Attempting to end stream: ", request.StreamID)
+	if request.DiscardVoD {
+		shouldDiscardVoD[request.StreamID] = true
+	}
+
 	streams := lectureHallStreams[request.StreamID]
-	for streamIndex := range streams {
-		streamCtx := streams[streamIndex]
+	for _, stream := range streams {
+		streamCtx := stream
 		if streamCtx.isSelfStream {
 			log.Error("Unexpected self stream end request.")
 			continue
 		}
+		// Register worker for stream
+		lectureHallStreams[streamCtx.streamId] = append(lectureHallStreams[streamCtx.streamId], streamCtx)
 		HandleStreamEnd(streamCtx)
 	}
 }
@@ -100,7 +112,10 @@ func HandleStreamEnd(ctx *StreamContext) {
 		log.Warn("context has no command or process to end")
 	}
 	S.endStream(ctx)
-	notifyStreamDone(ctx.streamId)
+	// Self-Streams notify here
+	if ctx.isSelfStream {
+		notifyStreamDone(ctx.streamId)
+	}
 	lectureHallStreams[ctx.streamId] = remove(lectureHallStreams[ctx.streamId], ctx)
 }
 
@@ -112,7 +127,7 @@ func remove(contexts []*StreamContext, context *StreamContext) []*StreamContext 
 			newContexts = append(newContexts, i)
 		}
 	}
-	log.Println("Removed stream with source: ", context.sourceUrl)
+	log.Info("Removed stream with source: ", context.sourceUrl)
 	return newContexts
 }
 
@@ -136,6 +151,11 @@ func HandleStreamRequest(request *pb.StreamRequest) {
 		outUrl:        request.GetOutUrl(),
 	}
 
+	// Register worker for stream
+	if !streamCtx.isSelfStream {
+		lectureHallStreams[streamCtx.streamId] = append(lectureHallStreams[streamCtx.streamId], streamCtx)
+	}
+
 	//only record
 	if !streamCtx.stream {
 		S.startRecording(streamCtx.getRecordingFileName())
@@ -146,6 +166,10 @@ func HandleStreamRequest(request *pb.StreamRequest) {
 	}
 	// notify stream/recording done
 	notifyStreamDone(streamCtx.streamId)
+	if shouldDiscardVoD[streamCtx.streamId] {
+		delete(shouldDiscardVoD, streamCtx.streamId)
+		return
+	}
 
 	S.startTranscoding(streamCtx.getStreamName())
 	transcode(streamCtx)

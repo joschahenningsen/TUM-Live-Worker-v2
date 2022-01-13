@@ -12,10 +12,6 @@ import (
 
 //stream records and streams a lecture hall to the lrz
 func stream(streamCtx *StreamContext) {
-	// Register worker for stream
-	if !streamCtx.isSelfStream {
-		lectureHallStreams[streamCtx.streamId] = append(lectureHallStreams[streamCtx.streamId], streamCtx)
-	}
 	// add 10 minutes padding to stream end in case lecturers do lecturer things
 	streamUntil := streamCtx.endTime.Add(time.Minute * 10)
 	log.WithFields(log.Fields{"source": streamCtx.sourceUrl, "end": streamUntil, "fileName": streamCtx.getRecordingFileName()}).
