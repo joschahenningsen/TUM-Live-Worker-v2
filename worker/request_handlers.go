@@ -34,7 +34,7 @@ func HandlePremiere(request *pb.PremiereRequest) {
 	S.startStream(streamCtx)
 	streamPremiere(streamCtx)
 	S.endStream(streamCtx)
-	notifyStreamDone(streamCtx.streamId)
+	notifyStreamDone(streamCtx.streamId, streamCtx.endedEarly)
 }
 
 func HandleSelfStream(request *pb.SelfStreamResponse, slug string) *StreamContext {
@@ -92,6 +92,7 @@ func HandleStreamEndRequest(request *pb.EndStreamRequest) {
 		// Register worker for stream
 		lectureHallStreams[streamCtx.streamId] = append(lectureHallStreams[streamCtx.streamId], streamCtx)
 		HandleStreamEnd(streamCtx)
+		streamCtx.endedEarly = true
 	}
 }
 
@@ -109,7 +110,7 @@ func HandleStreamEnd(ctx *StreamContext) {
 	S.endStream(ctx)
 	// Self-Streams notify here
 	if ctx.isSelfStream {
-		notifyStreamDone(ctx.streamId)
+		notifyStreamDone(ctx.streamId, ctx.endedEarly)
 	}
 	lectureHallStreams[ctx.streamId] = remove(lectureHallStreams[ctx.streamId], ctx)
 }
@@ -160,7 +161,7 @@ func HandleStreamRequest(request *pb.StreamRequest) {
 		stream(streamCtx)
 	}
 	// notify stream/recording done
-	notifyStreamDone(streamCtx.streamId)
+	notifyStreamDone(streamCtx.streamId, streamCtx.endedEarly)
 	if streamCtx.discardVoD {
 		return
 	}
@@ -208,6 +209,7 @@ type StreamContext struct {
 	stopped       bool           // whether the stream has been stopped
 	outUrl        string         // url the stream will be available at
 	discardVoD    bool           // whether the VoD should be discarded
+	endedEarly    bool           // whether a stream was ended before it's official end
 
 	// calculated after stream:
 	duration uint32 //duration of the stream in seconds

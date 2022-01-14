@@ -69,7 +69,7 @@ func notifyStreamStart(streamCtx *StreamContext) {
 	}
 }
 
-func notifyStreamDone(streamID uint32) {
+func notifyStreamDone(streamID uint32, endedEarly bool) {
 	client, conn, err := GetClient()
 	if err != nil {
 		log.WithError(err).Error("Unable to dial server")
@@ -79,8 +79,9 @@ func notifyStreamDone(streamID uint32) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 	resp, err := client.NotifyStreamFinished(ctx, &pb.StreamFinished{
-		WorkerID: cfg.WorkerID,
-		StreamID: streamID,
+		WorkerID:   cfg.WorkerID,
+		StreamID:   streamID,
+		EndedEarly: endedEarly,
 	})
 	if err != nil || !resp.Ok {
 		log.WithError(err).Error("Could not notify stream finished")
