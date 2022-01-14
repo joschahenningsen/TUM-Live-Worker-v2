@@ -15,8 +15,6 @@ import (
 // Note that we can have multiple contexts for different sources.
 var lectureHallStreams = make(map[uint32][]*StreamContext)
 
-var shouldDiscardVoD = make(map[uint32]bool)
-
 func HandlePremiere(request *pb.PremiereRequest) {
 	streamCtx := &StreamContext{
 		streamId:      request.StreamID,
@@ -83,13 +81,10 @@ func HandleSelfStreamRecordEnd(ctx *StreamContext) {
 
 func HandleStreamEndRequest(request *pb.EndStreamRequest) {
 	log.Info("Attempting to end stream: ", request.StreamID)
-	if request.DiscardVoD {
-		shouldDiscardVoD[request.StreamID] = true
-	}
-
 	streams := lectureHallStreams[request.StreamID]
 	for _, stream := range streams {
 		streamCtx := stream
+		streamCtx.discardVoD = request.DiscardVoD
 		if streamCtx.isSelfStream {
 			log.Error("Unexpected self stream end request.")
 			continue
@@ -166,8 +161,7 @@ func HandleStreamRequest(request *pb.StreamRequest) {
 	}
 	// notify stream/recording done
 	notifyStreamDone(streamCtx.streamId)
-	if shouldDiscardVoD[streamCtx.streamId] {
-		delete(shouldDiscardVoD, streamCtx.streamId)
+	if streamCtx.discardVoD {
 		return
 	}
 
@@ -213,6 +207,7 @@ type StreamContext struct {
 	ingestServer  string         // ingest server e.g. rtmp://user:password@my.server
 	stopped       bool           // whether the stream has been stopped
 	outUrl        string         // url the stream will be available at
+	discardVoD    bool           // whether the VoD should be discarded
 
 	// calculated after stream:
 	duration uint32 //duration of the stream in seconds

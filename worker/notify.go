@@ -11,12 +11,10 @@ import (
 )
 
 func closeConnection(conn *grpc.ClientConn) {
-	func(conn *grpc.ClientConn) {
-		err := conn.Close()
-		if err != nil {
-			log.WithError(err).Error("Could not close connection")
-		}
-	}(conn)
+	err := conn.Close()
+	if err != nil {
+		log.WithError(err).Error("Could not close connection")
+	}
 }
 
 func notifySilenceResults(silences *[]silence, streamID uint32) {
