@@ -14,10 +14,10 @@ import (
 
 type streamID = uint32
 
-// lectureHallStreams contains a map from streaming keys to their contexts.
-// Note that we can have multiple contexts for different sources.
-var lectureHallStreams = make(map[streamID][]*StreamContext)
-var lock = sync.RWMutex{}
+var (
+	lectureHallStreams = make(map[streamID][]*StreamContext) // Note that we can have multiple contexts for a streamID for different sources.
+	mutex              = sync.Mutex{}
+)
 
 // removeContext deletes all stream contexts that match the source of a given context
 func removeContext(contexts []*StreamContext, context *StreamContext) []*StreamContext {
@@ -45,9 +45,9 @@ func HandlePremiere(request *pb.PremiereRequest) {
 	}
 	// Register worker for premiere
 	if !streamCtx.isSelfStream {
-		lock.Lock()
+		mutex.Lock()
 		lectureHallStreams[streamCtx.streamId] = append(lectureHallStreams[streamCtx.streamId], streamCtx)
-		lock.Unlock()
+		mutex.Unlock()
 	}
 	S.startStream(streamCtx)
 	streamPremiere(streamCtx)
@@ -99,7 +99,7 @@ func HandleSelfStreamRecordEnd(ctx *StreamContext) {
 
 func HandleStreamEndRequest(request *pb.EndStreamRequest) {
 	log.Info("Attempting to end stream: ", request.StreamID)
-	lock.Lock()
+	mutex.Lock()
 	streams := lectureHallStreams[request.StreamID]
 	for _, stream := range streams {
 		streamCtx := stream
@@ -113,7 +113,7 @@ func HandleStreamEndRequest(request *pb.EndStreamRequest) {
 		lectureHallStreams[streamCtx.streamId] = append(lectureHallStreams[streamCtx.streamId], streamCtx)
 		HandleStreamEnd(streamCtx)
 	}
-	lock.Unlock()
+	mutex.Unlock()
 }
 
 //HandleStreamEnd stops the ffmpeg instance by sending a SIGINT to it and prevents the loop to restart it by marking the stream context as stopped.
@@ -132,9 +132,9 @@ func HandleStreamEnd(ctx *StreamContext) {
 	if ctx.isSelfStream {
 		notifyStreamDone(ctx.streamId, ctx.endedEarly)
 	}
-	lock.Lock()
+	mutex.Lock()
 	lectureHallStreams[ctx.streamId] = removeContext(lectureHallStreams[ctx.streamId], ctx)
-	lock.Unlock()
+	mutex.Unlock()
 }
 
 func HandleStreamRequest(request *pb.StreamRequest) {
@@ -159,9 +159,9 @@ func HandleStreamRequest(request *pb.StreamRequest) {
 
 	// Register worker for stream
 	if !streamCtx.isSelfStream {
-		lock.Lock()
+		mutex.Lock()
 		lectureHallStreams[streamCtx.streamId] = append(lectureHallStreams[streamCtx.streamId], streamCtx)
-		lock.Unlock()
+		mutex.Unlock()
 	}
 
 	//only record
