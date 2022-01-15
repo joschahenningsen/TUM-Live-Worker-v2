@@ -15,6 +15,18 @@ import (
 // Note that we can have multiple contexts for different sources.
 var lectureHallStreams = make(map[uint32][]*StreamContext)
 
+func remove(contexts []*StreamContext, context *StreamContext) []*StreamContext {
+	var newContexts []*StreamContext
+
+	for _, i := range contexts {
+		if i.sourceUrl != context.sourceUrl {
+			newContexts = append(newContexts, i)
+		}
+	}
+	log.Info("Removed stream with source: ", context.sourceUrl)
+	return newContexts
+}
+
 func HandlePremiere(request *pb.PremiereRequest) {
 	streamCtx := &StreamContext{
 		streamId:      request.StreamID,
@@ -84,15 +96,15 @@ func HandleStreamEndRequest(request *pb.EndStreamRequest) {
 	streams := lectureHallStreams[request.StreamID]
 	for _, stream := range streams {
 		streamCtx := stream
-		streamCtx.discardVoD = request.DiscardVoD
 		if streamCtx.isSelfStream {
 			log.Error("Unexpected self stream end request.")
 			continue
 		}
+		streamCtx.discardVoD = request.DiscardVoD
+		streamCtx.endedEarly = true
 		// Register worker for stream
 		lectureHallStreams[streamCtx.streamId] = append(lectureHallStreams[streamCtx.streamId], streamCtx)
 		HandleStreamEnd(streamCtx)
-		streamCtx.endedEarly = true
 	}
 }
 
@@ -113,18 +125,6 @@ func HandleStreamEnd(ctx *StreamContext) {
 		notifyStreamDone(ctx.streamId, ctx.endedEarly)
 	}
 	lectureHallStreams[ctx.streamId] = remove(lectureHallStreams[ctx.streamId], ctx)
-}
-
-func remove(contexts []*StreamContext, context *StreamContext) []*StreamContext {
-	var newContexts []*StreamContext
-
-	for _, i := range contexts {
-		if i.sourceUrl != context.sourceUrl {
-			newContexts = append(newContexts, i)
-		}
-	}
-	log.Info("Removed stream with source: ", context.sourceUrl)
-	return newContexts
 }
 
 func HandleStreamRequest(request *pb.StreamRequest) {
