@@ -19,11 +19,13 @@ type streamID = uint32
 var lectureHallStreams = make(map[streamID][]*StreamContext)
 var lock = sync.RWMutex{}
 
-func remove(contexts []*StreamContext, context *StreamContext) []*StreamContext {
+// removeContext deletes all stream contexts that match the source of a given context
+func removeContext(contexts []*StreamContext, context *StreamContext) []*StreamContext {
 	var newContexts []*StreamContext
-
-	for _, i := range contexts {
-		newContexts = append(newContexts, i)
+	for _, c := range contexts {
+		if c.sourceUrl != context.sourceUrl {
+			newContexts = append(newContexts, c)
+		}
 	}
 	log.Info("Removed stream with source: ", context.sourceUrl)
 	return newContexts
@@ -131,7 +133,7 @@ func HandleStreamEnd(ctx *StreamContext) {
 		notifyStreamDone(ctx.streamId, ctx.endedEarly)
 	}
 	lock.Lock()
-	lectureHallStreams[ctx.streamId] = remove(lectureHallStreams[ctx.streamId], ctx)
+	lectureHallStreams[ctx.streamId] = removeContext(lectureHallStreams[ctx.streamId], ctx)
 	lock.Unlock()
 }
 
