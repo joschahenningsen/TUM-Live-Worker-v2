@@ -52,7 +52,7 @@ func HandlePremiere(request *pb.PremiereRequest) {
 	S.startStream(streamCtx)
 	streamPremiere(streamCtx)
 	S.endStream(streamCtx)
-	notifyStreamDone(streamCtx.streamId, streamCtx.endedEarly)
+	NotifyStreamDone(streamCtx)
 }
 
 func HandleSelfStream(request *pb.SelfStreamResponse, slug string) *StreamContext {
@@ -97,23 +97,19 @@ func HandleSelfStreamRecordEnd(ctx *StreamContext) {
 	notifySilenceResults(sd.Silences, ctx.streamId)
 }
 
+// HandleStreamEndRequest ends all streams for a given streamID contained in request
 func HandleStreamEndRequest(request *pb.EndStreamRequest) {
 	log.Info("Attempting to end stream: ", request.StreamID)
-	mutex.Lock()
-	streams := lectureHallStreams[request.StreamID]
-	for _, stream := range streams {
-		streamCtx := stream
-		if streamCtx.isSelfStream {
-			log.Error("Unexpected self stream end request.")
-			continue
-		}
-		streamCtx.discardVoD = request.DiscardVoD
-		streamCtx.endedEarly = true
-		// Register worker for stream
-		lectureHallStreams[streamCtx.streamId] = append(lectureHallStreams[streamCtx.streamId], streamCtx)
-		HandleStreamEnd(streamCtx)
+	regularStreams.endStreams(request)
+}
+
+func (s *safeStreams) endStreams(request *pb.EndStreamRequest) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	for _, streamContext := range s.streams[request.StreamID] {
+		streamContext.discardVoD = request.DiscardVoD
+		HandleStreamEnd(streamContext)
 	}
-	mutex.Unlock()
 }
 
 //HandleStreamEnd stops the ffmpeg instance by sending a SIGINT to it and prevents the loop to restart it by marking the stream context as stopped.
@@ -172,8 +168,7 @@ func HandleStreamRequest(request *pb.StreamRequest) {
 	} else {
 		stream(streamCtx)
 	}
-	// notify stream/recording done
-	notifyStreamDone(streamCtx.streamId, streamCtx.endedEarly)
+	NotifyStreamDone(streamCtx) // notify stream/recording done
 	if streamCtx.discardVoD {
 		return
 	}
@@ -221,7 +216,6 @@ type StreamContext struct {
 	stopped       bool           // whether the stream has been stopped
 	outUrl        string         // url the stream will be available at
 	discardVoD    bool           // whether the VoD should be discarded
-	endedEarly    bool           // whether a stream was ended before it's official end
 
 	// calculated after stream:
 	duration uint32 //duration of the stream in seconds

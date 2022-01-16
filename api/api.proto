@@ -91,7 +91,6 @@ message HeartBeat {
 message StreamFinished {
   string WorkerID = 1;
   uint32 StreamID = 2;
-  bool EndedEarly = 3;
 }
 
 message TranscodingFinished {
