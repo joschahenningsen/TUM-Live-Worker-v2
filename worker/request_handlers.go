@@ -12,23 +12,33 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-type streamID = uint32
+type safeStreams struct {
+	mutex   sync.Mutex
+	streams map[uint32][]*StreamContext // Note that we can have multiple contexts for a streamID for different sources.
+}
 
-var (
-	lectureHallStreams = make(map[streamID][]*StreamContext) // Note that we can have multiple contexts for a streamID for different sources.
-	mutex              = sync.Mutex{}
-)
+// regularStreams keeps track of all lecture hall streams for the current worker
+var regularStreams = safeStreams{streams: make(map[uint32][]*StreamContext)}
 
-// removeContext deletes all stream contexts that match the source of a given context
-func removeContext(contexts []*StreamContext, context *StreamContext) []*StreamContext {
+// addContext adds a stream context for a given streamID to the map in safeStreams
+func (s *safeStreams) addContext(streamID uint32, streamCtx *StreamContext) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	s.streams[streamID] = append(s.streams[streamCtx.streamId], streamCtx)
+}
+
+// removeContextForSource deletes all stream contexts that match the source of a given context
+func (s *safeStreams) removeContextForSource(streamID uint32, removedSource string) {
 	var newContexts []*StreamContext
-	for _, c := range contexts {
-		if c.sourceUrl != context.sourceUrl {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	for _, c := range s.streams[streamID] {
+		if c.sourceUrl != removedSource {
 			newContexts = append(newContexts, c)
 		}
 	}
-	log.Info("Removed stream with source: ", context.sourceUrl)
-	return newContexts
+	log.Info("Removed stream with source: ", removedSource)
+	s.streams[streamID] = newContexts
 }
 
 func HandlePremiere(request *pb.PremiereRequest) {
@@ -45,9 +55,7 @@ func HandlePremiere(request *pb.PremiereRequest) {
 	}
 	// Register worker for premiere
 	if !streamCtx.isSelfStream {
-		mutex.Lock()
-		lectureHallStreams[streamCtx.streamId] = append(lectureHallStreams[streamCtx.streamId], streamCtx)
-		mutex.Unlock()
+		regularStreams.addContext(streamCtx.streamId, streamCtx)
 	}
 	S.startStream(streamCtx)
 	streamPremiere(streamCtx)
@@ -124,13 +132,7 @@ func HandleStreamEnd(ctx *StreamContext) {
 		log.Warn("context has no command or process to end")
 	}
 	S.endStream(ctx)
-	// Self-Streams notify here
-	if ctx.isSelfStream {
-		notifyStreamDone(ctx.streamId, ctx.endedEarly)
-	}
-	mutex.Lock()
-	lectureHallStreams[ctx.streamId] = removeContext(lectureHallStreams[ctx.streamId], ctx)
-	mutex.Unlock()
+	regularStreams.removeContextForSource(ctx.streamId, ctx.sourceUrl)
 }
 
 func HandleStreamRequest(request *pb.StreamRequest) {
@@ -155,9 +157,7 @@ func HandleStreamRequest(request *pb.StreamRequest) {
 
 	// Register worker for stream
 	if !streamCtx.isSelfStream {
-		mutex.Lock()
-		lectureHallStreams[streamCtx.streamId] = append(lectureHallStreams[streamCtx.streamId], streamCtx)
-		mutex.Unlock()
+		regularStreams.addContext(streamCtx.streamId, streamCtx)
 	}
 
 	//only record
@@ -170,9 +170,9 @@ func HandleStreamRequest(request *pb.StreamRequest) {
 	}
 	NotifyStreamDone(streamCtx) // notify stream/recording done
 	if streamCtx.discardVoD {
+		log.Info("Skipping VoD creation")
 		return
 	}
-
 	S.startTranscoding(streamCtx.getStreamName())
 	transcode(streamCtx)
 	S.endTranscoding(streamCtx.getStreamName())
