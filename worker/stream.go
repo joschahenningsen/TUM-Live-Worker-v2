@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"syscall"
 	"time"
 )
 
@@ -41,7 +42,6 @@ func stream(streamCtx *StreamContext) {
 		}
 		// persist stream command in context, so it can be killed later
 		streamCtx.streamCmd = cmd
-
 		log.WithField("cmd", cmd.String()).Info("Starting stream")
 		ffmpegErr, errFfmpegErrFile := os.OpenFile(fmt.Sprintf("%s/ffmpeg_%s.log", cfg.LogDir, streamCtx.getStreamName()), os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
 		if errFfmpegErrFile == nil {
@@ -49,6 +49,8 @@ func stream(streamCtx *StreamContext) {
 		} else {
 			log.WithError(errFfmpegErrFile).Error("Could not create file for ffmpeg stdErr")
 		}
+		// Create a new pgid for the new process, so we don't kill the parent process when ending the stream
+		cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 		err := cmd.Run()
 		if err != nil && !streamCtx.stopped {
 			errorWithBackoff(&lastErr, "Error while streaming (run)", err)

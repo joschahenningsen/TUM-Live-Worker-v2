@@ -5,6 +5,7 @@ import (
 	"os/exec"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/joschahenningsen/TUM-Live-Worker-v2/cfg"
@@ -120,11 +121,18 @@ func (s *safeStreams) endStreams(request *pb.EndStreamRequest) {
 	}
 }
 
-//HandleStreamEnd stops the ffmpeg instance by sending a SIGINT to it and prevents the loop to restart it by marking the stream context as stopped.
+// HandleStreamEnd stops the ffmpeg instance by sending a SIGINT to it and prevents the loop to restart it by marking the stream context as stopped.
 func HandleStreamEnd(ctx *StreamContext) {
 	ctx.stopped = true
 	if ctx.streamCmd != nil && ctx.streamCmd.Process != nil {
-		err := ctx.streamCmd.Process.Kill()
+		pgid, err := syscall.Getpgid(ctx.streamCmd.Process.Pid)
+		if err == nil {
+			// We use the new pgid that we created in stream.go to actually kill the bash process with all its children
+			err := syscall.Kill(-pgid, syscall.SIGKILL) // Note that the - is used to kill process groups
+			if err != nil {
+				return
+			}
+		}
 		if err != nil {
 			log.WithError(err).Warn("can't kill ffmpeg process")
 		}
