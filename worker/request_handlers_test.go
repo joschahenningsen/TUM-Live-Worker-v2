@@ -1,9 +1,13 @@
 package worker
 
 import (
-	"github.com/joschahenningsen/TUM-Live-Worker-v2/cfg"
+	"github.com/joschahenningsen/TUM-Live-Worker-v2/pb"
+	"os/exec"
+	"syscall"
 	"testing"
 	"time"
+
+	"github.com/joschahenningsen/TUM-Live-Worker-v2/cfg"
 )
 
 var s StreamContext
@@ -38,5 +42,51 @@ func TestGetRecordingFileName(t *testing.T) {
 	recordingNameShould := "/recordings/eidi-2021-09-23-08-00COMB.ts"
 	if got := s.getRecordingFileName(); got != recordingNameShould {
 		t.Errorf("Wrong recording name, should be %s but is %s", recordingNameShould, got)
+	}
+}
+
+// TestStreamEndRequest tests whether the process of a streamContext gets terminated when ending a stream via request
+func TestStreamEndRequest(t *testing.T) {
+	timeout := time.After(3 * time.Second)
+	done := make(chan bool)
+	go func() {
+		const maxIterations int = 16
+
+		request := pb.EndStreamRequest{
+			StreamID:   s.streamId,
+			WorkerID:   cfg.WorkerID,
+			DiscardVoD: true,
+		}
+		for i := 0; i < maxIterations; i++ {
+			request.StreamID = uint32(i % 4)
+			s.streamId = request.StreamID
+			// We have to create a new process each iteration, cat blocks without any arguments
+			s.streamCmd = exec.Command("cat")
+			s.streamCmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true} // See stream.go
+			regularStreams.addContext(s.streamId, &s)
+			err := s.streamCmd.Start()
+			if err != nil {
+				t.Errorf("Starting the streamCmd failed")
+			}
+			// Should end the streamCmd process
+			HandleStreamEndRequest(&request)
+			wait, err := s.streamCmd.Process.Wait()
+			if err != nil {
+				t.Errorf("Wait did not succeed")
+			}
+			if wait.ExitCode() == 0 {
+				t.Errorf("Process did not exit properly")
+			}
+			if len(regularStreams.streams) > 0 {
+				t.Errorf("Streams were not deleted properly")
+			}
+		}
+		done <- true
+	}()
+
+	select {
+	case <-timeout:
+		t.Fatal("Test didn't finish in time")
+	case <-done:
 	}
 }
