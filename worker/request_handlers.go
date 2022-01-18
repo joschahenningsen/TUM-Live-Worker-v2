@@ -28,18 +28,16 @@ func (s *safeStreams) addContext(streamID uint32, streamCtx *StreamContext) {
 	s.streams[streamID] = append(s.streams[streamCtx.streamId], streamCtx)
 }
 
-// removeContextForSource deletes all stream contexts that match the source of a given context
-func (s *safeStreams) removeContextForSource(streamID uint32, removedSource string) {
-	var newContexts []*StreamContext
+func (s *safeStreams) endStreams(request *pb.EndStreamRequest) {
 	s.mutex.Lock()
-	defer s.mutex.Unlock()
-	for _, c := range s.streams[streamID] {
-		if c.sourceUrl != removedSource {
-			newContexts = append(newContexts, c)
-		}
+	defer s.mutex.Lock()
+	stream := s.streams[request.StreamID]
+	for _, streamContext := range stream {
+		streamContext.discardVoD = request.DiscardVoD
+		HandleStreamEnd(streamContext)
 	}
-	log.Info("Removed stream with source: ", removedSource)
-	s.streams[streamID] = newContexts
+	// All streams should be ended right now, so we can delete them
+	delete(s.streams, request.StreamID)
 }
 
 func HandlePremiere(request *pb.PremiereRequest) {
@@ -112,35 +110,24 @@ func HandleStreamEndRequest(request *pb.EndStreamRequest) {
 	regularStreams.endStreams(request)
 }
 
-func (s *safeStreams) endStreams(request *pb.EndStreamRequest) {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-	for _, streamContext := range s.streams[request.StreamID] {
-		streamContext.discardVoD = request.DiscardVoD
-		HandleStreamEnd(streamContext)
-	}
-}
-
 // HandleStreamEnd stops the ffmpeg instance by sending a SIGINT to it and prevents the loop to restart it by marking the stream context as stopped.
 func HandleStreamEnd(ctx *StreamContext) {
 	ctx.stopped = true
 	if ctx.streamCmd != nil && ctx.streamCmd.Process != nil {
 		pgid, err := syscall.Getpgid(ctx.streamCmd.Process.Pid)
-		if err == nil {
-			// We use the new pgid that we created in stream.go to actually kill the bash process with all its children
-			err := syscall.Kill(-pgid, syscall.SIGKILL) // Note that the - is used to kill process groups
-			if err != nil {
-				return
-			}
-		}
 		if err != nil {
-			log.WithError(err).Warn("can't kill ffmpeg process")
+			log.WithError(err).WithField("streamID", ctx.streamId).Warn("Can't find pgid for ffmpeg")
+		} else {
+			// We use the new pgid that we created in stream.go to actually interrupt the bash process with all its children
+			err := syscall.Kill(-pgid, syscall.SIGINT) // Note that the - is used to kill process groups
+			if err != nil {
+				log.WithError(err).WithField("streamID", ctx.streamId).Warn("Can't interrupt ffmpeg")
+			}
 		}
 	} else {
 		log.Warn("context has no command or process to end")
 	}
 	S.endStream(ctx)
-	regularStreams.removeContextForSource(ctx.streamId, ctx.sourceUrl)
 }
 
 func HandleStreamRequest(request *pb.StreamRequest) {
@@ -164,9 +151,7 @@ func HandleStreamRequest(request *pb.StreamRequest) {
 	}
 
 	// Register worker for stream
-	if !streamCtx.isSelfStream {
-		regularStreams.addContext(streamCtx.streamId, streamCtx)
-	}
+	regularStreams.addContext(streamCtx.streamId, streamCtx)
 
 	//only record
 	if !streamCtx.stream {

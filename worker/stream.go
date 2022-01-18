@@ -2,13 +2,14 @@ package worker
 
 import (
 	"fmt"
-	"github.com/joschahenningsen/TUM-Live-Worker-v2/cfg"
-	log "github.com/sirupsen/logrus"
 	"os"
 	"os/exec"
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/joschahenningsen/TUM-Live-Worker-v2/cfg"
+	log "github.com/sirupsen/logrus"
 )
 
 //stream records and streams a lecture hall to the lrz
