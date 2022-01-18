@@ -30,7 +30,7 @@ func (s *safeStreams) addContext(streamID uint32, streamCtx *StreamContext) {
 
 func (s *safeStreams) endStreams(request *pb.EndStreamRequest) {
 	s.mutex.Lock()
-	defer s.mutex.Lock()
+	defer s.mutex.Unlock()
 	stream := s.streams[request.StreamID]
 	for _, streamContext := range stream {
 		streamContext.discardVoD = request.DiscardVoD
