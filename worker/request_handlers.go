@@ -28,18 +28,6 @@ func (s *safeStreams) addContext(streamID uint32, streamCtx *StreamContext) {
 	s.streams[streamID] = append(s.streams[streamCtx.streamId], streamCtx)
 }
 
-func (s *safeStreams) endStreams(request *pb.EndStreamRequest) {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-	stream := s.streams[request.StreamID]
-	for _, streamContext := range stream {
-		streamContext.discardVoD = request.DiscardVoD
-		HandleStreamEnd(streamContext)
-	}
-	// All streams should be ended right now, so we can delete them
-	delete(s.streams, request.StreamID)
-}
-
 func HandlePremiere(request *pb.PremiereRequest) {
 	streamCtx := &StreamContext{
 		streamId:      request.StreamID,
@@ -108,6 +96,18 @@ func HandleSelfStreamRecordEnd(ctx *StreamContext) {
 func HandleStreamEndRequest(request *pb.EndStreamRequest) {
 	log.Info("Attempting to end stream: ", request.StreamID)
 	regularStreams.endStreams(request)
+}
+
+func (s *safeStreams) endStreams(request *pb.EndStreamRequest) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	stream := s.streams[request.StreamID]
+	for _, streamContext := range stream {
+		streamContext.discardVoD = request.DiscardVoD
+		HandleStreamEnd(streamContext)
+	}
+	// All streams should be ended right now, so we can delete them
+	delete(s.streams, request.StreamID)
 }
 
 // HandleStreamEnd stops the ffmpeg instance by sending a SIGINT to it and prevents the loop to restart it by marking the stream context as stopped.
