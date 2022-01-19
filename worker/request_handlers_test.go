@@ -47,7 +47,7 @@ func TestGetRecordingFileName(t *testing.T) {
 
 // TestStreamEndRequest tests whether the process of a streamContext gets terminated when ending a stream via request
 func TestStreamEndRequest(t *testing.T) {
-	timeout := time.After(3 * time.Second)
+	timeout := time.After(2 * time.Second)
 	done := make(chan bool)
 	go func() {
 		const maxIterations int = 16
@@ -67,18 +67,23 @@ func TestStreamEndRequest(t *testing.T) {
 			err := s.streamCmd.Start()
 			if err != nil {
 				t.Errorf("Starting the streamCmd failed")
+				return
 			}
 			// Should end the streamCmd process
 			HandleStreamEndRequest(&request)
 			wait, err := s.streamCmd.Process.Wait()
 			if err != nil {
 				t.Errorf("Wait did not succeed")
+				return
 			}
-			if wait.ExitCode() == 0 {
+			// Process returns -1 when terminated via signal
+			if wait.ExitCode() != -1 {
 				t.Errorf("Process did not exit properly")
+				return
 			}
 			if len(regularStreams.streams) > 0 {
 				t.Errorf("Streams were not deleted properly")
+				return
 			}
 		}
 		done <- true
