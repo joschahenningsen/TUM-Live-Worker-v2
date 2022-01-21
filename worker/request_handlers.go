@@ -2,13 +2,31 @@ package worker
 
 import (
 	"fmt"
+	"os/exec"
+	"strings"
+	"sync"
+	"syscall"
+	"time"
+
 	"github.com/joschahenningsen/TUM-Live-Worker-v2/cfg"
 	"github.com/joschahenningsen/TUM-Live-Worker-v2/pb"
 	log "github.com/sirupsen/logrus"
-	"os/exec"
-	"strings"
-	"time"
 )
+
+type safeStreams struct {
+	mutex   sync.Mutex
+	streams map[uint32][]*StreamContext // Note that we can have multiple contexts for a streamID for different sources.
+}
+
+// regularStreams keeps track of all lecture hall streams for the current worker
+var regularStreams = safeStreams{streams: make(map[uint32][]*StreamContext)}
+
+// addContext adds a stream context for a given streamID to the map in safeStreams
+func (s *safeStreams) addContext(streamID uint32, streamCtx *StreamContext) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	s.streams[streamID] = append(s.streams[streamCtx.streamId], streamCtx)
+}
 
 func HandlePremiere(request *pb.PremiereRequest) {
 	streamCtx := &StreamContext{
@@ -22,10 +40,14 @@ func HandlePremiere(request *pb.PremiereRequest) {
 		ingestServer:  request.IngestServer,
 		outUrl:        request.OutUrl,
 	}
+	// Register worker for premiere
+	if !streamCtx.isSelfStream {
+		regularStreams.addContext(streamCtx.streamId, streamCtx)
+	}
 	S.startStream(streamCtx)
 	streamPremiere(streamCtx)
 	S.endStream(streamCtx)
-	notifyStreamDone(streamCtx.streamId)
+	NotifyStreamDone(streamCtx)
 }
 
 func HandleSelfStream(request *pb.SelfStreamResponse, slug string) *StreamContext {
@@ -70,24 +92,46 @@ func HandleSelfStreamRecordEnd(ctx *StreamContext) {
 	notifySilenceResults(sd.Silences, ctx.streamId)
 }
 
-//HandleSelfStreamEnd stops the ffmpeg instance by sending a SIGINT to it and prevents the loop to restart it by marking the stream context as stopped.
-func HandleSelfStreamEnd(ctx *StreamContext) {
+// HandleStreamEndRequest ends all streams for a given streamID contained in request
+func HandleStreamEndRequest(request *pb.EndStreamRequest) {
+	log.Info("Attempting to end stream: ", request.StreamID)
+	regularStreams.endStreams(request)
+}
+
+func (s *safeStreams) endStreams(request *pb.EndStreamRequest) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	stream := s.streams[request.StreamID]
+	for _, streamContext := range stream {
+		streamContext.discardVoD = request.DiscardVoD
+		HandleStreamEnd(streamContext)
+	}
+	// All streams should be ended right now, so we can delete them
+	delete(s.streams, request.StreamID)
+}
+
+// HandleStreamEnd stops the ffmpeg instance by sending a SIGINT to it and prevents the loop to restart it by marking the stream context as stopped.
+func HandleStreamEnd(ctx *StreamContext) {
 	ctx.stopped = true
 	if ctx.streamCmd != nil && ctx.streamCmd.Process != nil {
-		err := ctx.streamCmd.Process.Kill()
+		pgid, err := syscall.Getpgid(ctx.streamCmd.Process.Pid)
 		if err != nil {
-			log.WithError(err).Warn("can't kill self-stream ffmpeg")
+			log.WithError(err).WithField("streamID", ctx.streamId).Warn("Can't find pgid for ffmpeg")
+		} else {
+			// We use the new pgid that we created in stream.go to actually interrupt the bash process with all its children
+			err := syscall.Kill(-pgid, syscall.SIGINT) // Note that the - is used to kill process groups
+			if err != nil {
+				log.WithError(err).WithField("streamID", ctx.streamId).Warn("Can't interrupt ffmpeg")
+			}
 		}
 	} else {
-		log.Warn("self-stream context has no command on stream end")
+		log.Warn("context has no command or process to end")
 	}
 	S.endStream(ctx)
-	notifyStreamDone(ctx.streamId)
 }
 
 func HandleStreamRequest(request *pb.StreamRequest) {
 	log.WithField("request", request).Info("Request to stream")
-
 	//setup context with relevant information to pass to other subprocesses
 	streamCtx := &StreamContext{
 		streamId:      request.GetStreamID(),
@@ -106,6 +150,9 @@ func HandleStreamRequest(request *pb.StreamRequest) {
 		outUrl:        request.GetOutUrl(),
 	}
 
+	// Register worker for stream
+	regularStreams.addContext(streamCtx.streamId, streamCtx)
+
 	//only record
 	if !streamCtx.stream {
 		S.startRecording(streamCtx.getRecordingFileName())
@@ -114,9 +161,11 @@ func HandleStreamRequest(request *pb.StreamRequest) {
 	} else {
 		stream(streamCtx)
 	}
-	// notify stream/recording done
-	notifyStreamDone(streamCtx.streamId)
-
+	NotifyStreamDone(streamCtx) // notify stream/recording done
+	if streamCtx.discardVoD {
+		log.Info("Skipping VoD creation")
+		return
+	}
 	S.startTranscoding(streamCtx.getStreamName())
 	transcode(streamCtx)
 	S.endTranscoding(streamCtx.getStreamName())
@@ -159,6 +208,7 @@ type StreamContext struct {
 	ingestServer  string         // ingest server e.g. rtmp://user:password@my.server
 	stopped       bool           // whether the stream has been stopped
 	outUrl        string         // url the stream will be available at
+	discardVoD    bool           // whether the VoD should be discarded
 
 	// calculated after stream:
 	duration uint32 //duration of the stream in seconds
@@ -200,6 +250,7 @@ func (s StreamContext) getTranscodingFileName() string {
 		s.getStreamName())
 }
 
+// getStreamName returns the stream name, used for the worker status
 func (s StreamContext) getStreamName() string {
 	if !s.isSelfStream {
 		return fmt.Sprintf("%s-%s%s",

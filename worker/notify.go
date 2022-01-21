@@ -10,6 +10,13 @@ import (
 	"time"
 )
 
+func closeConnection(conn *grpc.ClientConn) {
+	err := conn.Close()
+	if err != nil {
+		log.WithError(err).Error("Could not close connection")
+	}
+}
+
 func notifySilenceResults(silences *[]silence, streamID uint32) {
 	if silences == nil {
 		return
@@ -19,7 +26,7 @@ func notifySilenceResults(silences *[]silence, streamID uint32) {
 		log.WithError(err).Error("Unable to dial server")
 		return
 	}
-	defer conn.Close()
+	defer closeConnection(conn)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 
@@ -48,7 +55,7 @@ func notifyStreamStart(streamCtx *StreamContext) {
 		log.WithError(err).Error("Unable to dial server")
 		return
 	}
-	defer conn.Close()
+	defer closeConnection(conn)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 	resp, err := client.NotifyStreamStarted(ctx, &pb.StreamStarted{
@@ -62,18 +69,18 @@ func notifyStreamStart(streamCtx *StreamContext) {
 	}
 }
 
-func notifyStreamDone(streamID uint32) {
+func NotifyStreamDone(streamCtx *StreamContext) {
 	client, conn, err := GetClient()
 	if err != nil {
 		log.WithError(err).Error("Unable to dial server")
 		return
 	}
-	defer conn.Close()
+	defer closeConnection(conn)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 	resp, err := client.NotifyStreamFinished(ctx, &pb.StreamFinished{
 		WorkerID: cfg.WorkerID,
-		StreamID: streamID,
+		StreamID: streamCtx.streamId,
 	})
 	if err != nil || !resp.Ok {
 		log.WithError(err).Error("Could not notify stream finished")
@@ -86,7 +93,7 @@ func notifyTranscodingDone(streamCtx *StreamContext) {
 		log.WithError(err).Error("Unable to dial server")
 		return
 	}
-	defer conn.Close()
+	defer closeConnection(conn)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 	resp, err := client.NotifyTranscodingFinished(ctx, &pb.TranscodingFinished{
@@ -106,7 +113,7 @@ func notifyUploadDone(streamCtx *StreamContext) {
 		log.WithError(err).Error("Unable to dial server")
 		return
 	}
-	defer conn.Close()
+	defer closeConnection(conn)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 	resp, err := client.NotifyUploadFinished(ctx, &pb.UploadFinished{

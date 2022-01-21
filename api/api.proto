@@ -8,6 +8,8 @@ service ToWorker {
   // Requests a stream from a lecture hall
   rpc RequestStream (StreamRequest) returns (Status) {}
   rpc RequestPremiere (PremiereRequest) returns (Status) {}
+  rpc RequestStreamEnd (EndStreamRequest) returns (Status) {}
+
 }
 
 message StreamRequest {
@@ -34,6 +36,12 @@ message PremiereRequest {
   string StreamName = 4;
   string IngestServer = 5;
   string OutUrl = 6;
+}
+
+message EndStreamRequest {
+  uint32 StreamID = 1;
+  string WorkerID = 2;
+  bool DiscardVoD = 3;
 }
 
 message Status {

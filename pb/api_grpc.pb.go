@@ -21,6 +21,7 @@ type ToWorkerClient interface {
 	// Requests a stream from a lecture hall
 	RequestStream(ctx context.Context, in *StreamRequest, opts ...grpc.CallOption) (*Status, error)
 	RequestPremiere(ctx context.Context, in *PremiereRequest, opts ...grpc.CallOption) (*Status, error)
+	RequestStreamEnd(ctx context.Context, in *EndStreamRequest, opts ...grpc.CallOption) (*Status, error)
 }
 
 type toWorkerClient struct {
@@ -49,6 +50,15 @@ func (c *toWorkerClient) RequestPremiere(ctx context.Context, in *PremiereReques
 	return out, nil
 }
 
+func (c *toWorkerClient) RequestStreamEnd(ctx context.Context, in *EndStreamRequest, opts ...grpc.CallOption) (*Status, error) {
+	out := new(Status)
+	err := c.cc.Invoke(ctx, "/api.ToWorker/RequestStreamEnd", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ToWorkerServer is the server API for ToWorker service.
 // All implementations must embed UnimplementedToWorkerServer
 // for forward compatibility
@@ -56,6 +66,7 @@ type ToWorkerServer interface {
 	// Requests a stream from a lecture hall
 	RequestStream(context.Context, *StreamRequest) (*Status, error)
 	RequestPremiere(context.Context, *PremiereRequest) (*Status, error)
+	RequestStreamEnd(context.Context, *EndStreamRequest) (*Status, error)
 	mustEmbedUnimplementedToWorkerServer()
 }
 
@@ -68,6 +79,9 @@ func (UnimplementedToWorkerServer) RequestStream(context.Context, *StreamRequest
 }
 func (UnimplementedToWorkerServer) RequestPremiere(context.Context, *PremiereRequest) (*Status, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RequestPremiere not implemented")
+}
+func (UnimplementedToWorkerServer) RequestStreamEnd(context.Context, *EndStreamRequest) (*Status, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RequestStreamEnd not implemented")
 }
 func (UnimplementedToWorkerServer) mustEmbedUnimplementedToWorkerServer() {}
 
@@ -118,6 +132,24 @@ func _ToWorker_RequestPremiere_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ToWorker_RequestStreamEnd_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EndStreamRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ToWorkerServer).RequestStreamEnd(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/api.ToWorker/RequestStreamEnd",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ToWorkerServer).RequestStreamEnd(ctx, req.(*EndStreamRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ToWorker_ServiceDesc is the grpc.ServiceDesc for ToWorker service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -132,6 +164,10 @@ var ToWorker_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RequestPremiere",
 			Handler:    _ToWorker_RequestPremiere_Handler,
+		},
+		{
+			MethodName: "RequestStreamEnd",
+			Handler:    _ToWorker_RequestStreamEnd_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
