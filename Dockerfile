@@ -1,4 +1,4 @@
-FROM golang:1.17-alpine3.14
+FROM golang:1.17-alpine3.15
 
 RUN apk add ffmpeg curl bash
 RUN apk add --no-cache tzdata
