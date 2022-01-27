@@ -1,7 +1,10 @@
-FROM golang:1.17-alpine3.14
+FROM golang:1.17-alpine3.15
 
-RUN apk add ffmpeg curl bash
-RUN apk add --no-cache tzdata
+RUN apk add --no-cache \
+  ffmpeg=4.4.1-r2 \
+  curl=7.80.0-r0 \
+  bash=5.1.8-r0 \
+  tzdata=2021e-r0
 
 WORKDIR /go/src/github.com/joschahenningsen/TUM-Live-Worker-v2
 COPY . .
