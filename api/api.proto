@@ -14,14 +14,15 @@ service ToWorker {
 }
 
 message CutRequest {
-  string worker_id = 1;
-  repeated string files = 2;
+  string WorkerId = 1;
+  repeated string Files = 2;
   message Segment {
-    int64 start_time = 1; // milliseconds
-    int64 end_time = 2;
-    bool discard = 3;
+    int64 Start_time = 1; // milliseconds
+    int64 End_time = 2;
+    bool Discard = 3;
   }
   repeated Segment segments = 3;
+  bool UploadResult = 4;
 }
 
 message CutResponse {
