@@ -1,32 +1,32 @@
-FROM ubuntu:21.04
+FROM ubuntu:21.04 as base-image
 
 RUN apt-get -qq update && apt-get -qq upgrade
 
 ENV NGINX_VERSION nginx-1.21.4
 ENV FFMPEG_VERSION snapshot
 ENV NGINX_RTMP_MODULE_VERSION 1.2.2
-
-ARG DEBIAN_FRONTEND=noninteractive
 ENV TZ=America/New_York
-
 ENV LD_LIBRARY_PATH=/usr/local/lib
 
-RUN apt-get -qq install git wget tclsh pkg-config cmake libssl-dev build-essential librtmp-dev yasm ca-certificates openssl libpcre3-dev ffmpeg
+
+FROM base-image as builder
+ARG DEBIAN_FRONTEND=noninteractive
+RUN apt-get -qq install --no-install-recommends -y git wget tclsh pkg-config cmake libssl-dev build-essential librtmp-dev yasm ca-certificates openssl libpcre3-dev && \
+    apt-get clean
 
 # Install nginx.
-RUN mkdir -p /tmp/build/nginx && \
-    cd /tmp/build/nginx && \
-    wget -O ${NGINX_VERSION}.tar.gz https://nginx.org/download/${NGINX_VERSION}.tar.gz && \
-    tar -zxf ${NGINX_VERSION}.tar.gz
+WORKDIR /tmp/build/nginx
+RUN wget -O "${NGINX_VERSION}.tar.gz" "https://nginx.org/download/${NGINX_VERSION}.tar.gz" && \
+    tar -zxf "${NGINX_VERSION}.tar.gz" && \
+    rm "${NGINX_VERSION}.tar.gz"
 
 # Download and decompress RTMP module
-RUN mkdir -p /tmp/build/nginx-rtmp-module && \
-    cd /tmp/build/nginx-rtmp-module && \
-    wget -O nginx-rtmp-module-${NGINX_RTMP_MODULE_VERSION}.tar.gz https://github.com/arut/nginx-rtmp-module/archive/v${NGINX_RTMP_MODULE_VERSION}.tar.gz && \
-    tar -zxf nginx-rtmp-module-${NGINX_RTMP_MODULE_VERSION}.tar.gz && \
-    cd nginx-rtmp-module-${NGINX_RTMP_MODULE_VERSION}
+WORKDIR /tmp/build/nginx-rtmp-module
+RUN wget -O "nginx-rtmp-module-${NGINX_RTMP_MODULE_VERSION}.tar.gz" "https://github.com/arut/nginx-rtmp-module/archive/v${NGINX_RTMP_MODULE_VERSION}.tar.gz" && \
+    tar -zxf "nginx-rtmp-module-${NGINX_RTMP_MODULE_VERSION}.tar.gz" && \
+    rm "nginx-rtmp-module-${NGINX_RTMP_MODULE_VERSION}.tar.gz"
 
-WORKDIR /tmp/build/nginx/${NGINX_VERSION}
+WORKDIR /tmp/build/nginx/"${NGINX_VERSION}"
 RUN ./configure \
     --sbin-path=/usr/local/sbin/nginx \
     --conf-path=/etc/nginx/nginx.conf \
@@ -38,10 +38,20 @@ RUN ./configure \
     --with-http_ssl_module \
     --with-threads \
     --with-ipv6 \
-    --add-module=/tmp/build/nginx-rtmp-module/nginx-rtmp-module-${NGINX_RTMP_MODULE_VERSION} \
+    --add-module="/tmp/build/nginx-rtmp-module/nginx-rtmp-module-${NGINX_RTMP_MODULE_VERSION}" \
     --with-cc-opt="-Wimplicit-fallthrough=0" \
     --with-debug
-RUN make -j $(getconf _NPROCESSORS_ONLN)
+RUN make -j "$(getconf _NPROCESSORS_ONLN)"
+
+FROM base-image
+
+ARG DEBIAN_FRONTEND=noninteractive
+RUN apt-get -qq install --no-install-recommends -y tclsh make yasm ca-certificates openssl ffmpeg && \
+    apt-get clean
+
+COPY --from=builder /tmp/build/ /tmp/build/
+
+WORKDIR /tmp/build/nginx/"${NGINX_VERSION}"
 RUN make install
 WORKDIR /
 
