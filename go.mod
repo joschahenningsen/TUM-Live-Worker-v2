@@ -8,6 +8,7 @@ require (
 	github.com/go-playground/validator/v10 v10.9.0 // indirect
 	github.com/golang/protobuf v1.5.2
 	github.com/icza/gox v0.0.0-20210726201659-cd40a3f8d324
+	github.com/iris-contrib/go.uuid v2.0.0+incompatible
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/makasim/sentryhook v0.4.0
 	github.com/mattn/go-isatty v0.0.14 // indirect

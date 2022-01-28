@@ -9,7 +9,33 @@ service ToWorker {
   rpc RequestStream (StreamRequest) returns (Status) {}
   rpc RequestPremiere (PremiereRequest) returns (Status) {}
   rpc RequestStreamEnd (EndStreamRequest) returns (Status) {}
+  rpc RequestWaveform (WaveformRequest) returns (WaveFormResponse) {}
+  rpc RequestCut (CutRequest) returns (CutResponse) {}
+}
 
+message CutRequest {
+  string worker_id = 1;
+  repeated string files = 2;
+  message Segment {
+    int64 start_time = 1; // milliseconds
+    int64 end_time = 2;
+    bool discard = 3;
+  }
+  repeated Segment segments = 3;
+}
+
+message CutResponse {
+  bool success = 1;
+  string error = 2; // if success == false: error message
+}
+
+message WaveformRequest {
+  string WorkerId = 1;
+  string File = 2;
+}
+
+message WaveFormResponse {
+  bytes Waveform = 1;
 }
 
 message StreamRequest {

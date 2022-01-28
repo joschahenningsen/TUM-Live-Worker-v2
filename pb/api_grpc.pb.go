@@ -22,6 +22,8 @@ type ToWorkerClient interface {
 	RequestStream(ctx context.Context, in *StreamRequest, opts ...grpc.CallOption) (*Status, error)
 	RequestPremiere(ctx context.Context, in *PremiereRequest, opts ...grpc.CallOption) (*Status, error)
 	RequestStreamEnd(ctx context.Context, in *EndStreamRequest, opts ...grpc.CallOption) (*Status, error)
+	RequestWaveform(ctx context.Context, in *WaveformRequest, opts ...grpc.CallOption) (*WaveFormResponse, error)
+	RequestCut(ctx context.Context, in *CutRequest, opts ...grpc.CallOption) (*CutResponse, error)
 }
 
 type toWorkerClient struct {
@@ -59,6 +61,24 @@ func (c *toWorkerClient) RequestStreamEnd(ctx context.Context, in *EndStreamRequ
 	return out, nil
 }
 
+func (c *toWorkerClient) RequestWaveform(ctx context.Context, in *WaveformRequest, opts ...grpc.CallOption) (*WaveFormResponse, error) {
+	out := new(WaveFormResponse)
+	err := c.cc.Invoke(ctx, "/api.ToWorker/RequestWaveform", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *toWorkerClient) RequestCut(ctx context.Context, in *CutRequest, opts ...grpc.CallOption) (*CutResponse, error) {
+	out := new(CutResponse)
+	err := c.cc.Invoke(ctx, "/api.ToWorker/RequestCut", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ToWorkerServer is the server API for ToWorker service.
 // All implementations must embed UnimplementedToWorkerServer
 // for forward compatibility
@@ -67,6 +87,8 @@ type ToWorkerServer interface {
 	RequestStream(context.Context, *StreamRequest) (*Status, error)
 	RequestPremiere(context.Context, *PremiereRequest) (*Status, error)
 	RequestStreamEnd(context.Context, *EndStreamRequest) (*Status, error)
+	RequestWaveform(context.Context, *WaveformRequest) (*WaveFormResponse, error)
+	RequestCut(context.Context, *CutRequest) (*CutResponse, error)
 	mustEmbedUnimplementedToWorkerServer()
 }
 
@@ -82,6 +104,12 @@ func (UnimplementedToWorkerServer) RequestPremiere(context.Context, *PremiereReq
 }
 func (UnimplementedToWorkerServer) RequestStreamEnd(context.Context, *EndStreamRequest) (*Status, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RequestStreamEnd not implemented")
+}
+func (UnimplementedToWorkerServer) RequestWaveform(context.Context, *WaveformRequest) (*WaveFormResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RequestWaveform not implemented")
+}
+func (UnimplementedToWorkerServer) RequestCut(context.Context, *CutRequest) (*CutResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RequestCut not implemented")
 }
 func (UnimplementedToWorkerServer) mustEmbedUnimplementedToWorkerServer() {}
 
@@ -150,6 +178,42 @@ func _ToWorker_RequestStreamEnd_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ToWorker_RequestWaveform_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(WaveformRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ToWorkerServer).RequestWaveform(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/api.ToWorker/RequestWaveform",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ToWorkerServer).RequestWaveform(ctx, req.(*WaveformRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ToWorker_RequestCut_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CutRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ToWorkerServer).RequestCut(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/api.ToWorker/RequestCut",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ToWorkerServer).RequestCut(ctx, req.(*CutRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ToWorker_ServiceDesc is the grpc.ServiceDesc for ToWorker service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -168,6 +232,14 @@ var ToWorker_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RequestStreamEnd",
 			Handler:    _ToWorker_RequestStreamEnd_Handler,
+		},
+		{
+			MethodName: "RequestWaveform",
+			Handler:    _ToWorker_RequestWaveform_Handler,
+		},
+		{
+			MethodName: "RequestCut",
+			Handler:    _ToWorker_RequestCut_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
