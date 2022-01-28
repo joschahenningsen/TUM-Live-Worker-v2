@@ -7,6 +7,7 @@ import (
 	"github.com/joschahenningsen/TUM-Live-Worker-v2/pb"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"time"
 )
 
@@ -128,7 +129,7 @@ func notifyUploadDone(streamCtx *StreamContext) {
 }
 
 func GetClient() (pb.FromWorkerClient, *grpc.ClientConn, error) {
-	conn, err := grpc.Dial(fmt.Sprintf("%s:50052", cfg.MainBase), grpc.WithInsecure())
+	conn, err := grpc.Dial(fmt.Sprintf("%s:50052", cfg.MainBase), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return nil, nil, err
 	}

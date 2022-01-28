@@ -9,6 +9,7 @@ import (
 	"github.com/robfig/cron/v3"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"strings"
 	"sync"
 	"time"
@@ -139,7 +140,7 @@ func (s *Status) endSilenceDetection(streamCtx *StreamContext) {
 
 func (s *Status) SendHeartbeat() {
 	// WithInsecure: workerId used for authentication, all servers are inside their own VLAN to further improve security
-	clientConn, err := grpc.Dial(fmt.Sprintf("%s:50052", cfg.MainBase), grpc.WithInsecure())
+	clientConn, err := grpc.Dial(fmt.Sprintf("%s:50052", cfg.MainBase), grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		log.WithError(err).Error("unable to dial for heartbeat")
 		return
