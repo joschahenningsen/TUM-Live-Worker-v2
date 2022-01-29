@@ -11,23 +11,22 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      - name: 'Ack'
-        uses: actions/github-script@0.3.0
-        if: github.event_name == 'pull_request'
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            const { issue: { number: issue_number }, repo: { owner, repo }  } = context;
-            github.issues.createComment({ issue_number, owner, repo, body: 'I\'ll build a container that will be deployed to the test server in a few minutes!' });
-      - name: remove label
-        uses: actions-ecosystem/action-remove-labels@v1
-        with:
-          labels: testserver
-      - name: Docker meta
-        id: meta
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Docker meta (worker)
+        id: metaworker
         uses: docker/metadata-action@v3
         with:
           images: ghcr.io/joschahenningsen/tum-live-worker-v2/test-server
+          tags: |
+            type=sha
+          flavor: |
+            latest=true
+      - name: Docker meta (nginx)
+        id: metanginx
+        uses: docker/metadata-action@v3
+        with:
+          images: ghcr.io/joschahenningsen/tum-live-worker-v2/test-server-nginx
           tags: |
             type=sha
           flavor: |
@@ -40,11 +39,31 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build and push Docker images
+      - name: Set outputs
+        id: vars
+        run: echo "::set-output name=sha_short::$(git rev-parse --short HEAD)"
+      - name: Build and push Docker images (nginx)
         uses: docker/build-push-action@v2
         with:
           context: .
           pull: true
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          build-args: version=${{ steps.vars.outputs.sha_short }}
+          tags: ${{ steps.metaworker.outputs.tags }}
+          labels: ${{ steps.metaworker.outputs.labels }}
+      - name: Build and push Docker images (worker)
+        uses: docker/build-push-action@v2
+        with:
+          context: ./nginx
+          pull: true
+          push: true
+          build-args: version=${{ steps.vars.outputs.sha_short }}
+          tags: ${{ steps.metanginx.outputs.tags }}
+          labels: ${{ steps.metanginx.outputs.labels }}
+      - name: Pull new Container
+        run: |
+          curl -H "Authorization: Bearer ${{ secrets.watchtowertoken }}" https://test.live.mm.rbg.tum.de/watchtower/v1/update
+      - name: remove label
+        uses: actions-ecosystem/action-remove-labels@v1
+        with:
+          labels: testserver
