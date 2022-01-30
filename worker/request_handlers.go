@@ -118,7 +118,7 @@ func HandleStreamEnd(ctx *StreamContext) {
 		if err != nil {
 			log.WithError(err).WithField("streamID", ctx.streamId).Warn("Can't find pgid for ffmpeg")
 		} else {
-			// We use the new pgid that we created in stream.go to actually interrupt the bash process with all its children
+			// We use the new pgid that we created in stream.go to actually interrupt the shell process with all its children
 			err := syscall.Kill(-pgid, syscall.SIGINT) // Note that the - is used to kill process groups
 			if err != nil {
 				log.WithError(err).WithField("streamID", ctx.streamId).Warn("Can't interrupt ffmpeg")
