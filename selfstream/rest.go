@@ -3,50 +3,54 @@ package selfstream
 
 import (
 	"errors"
-	"github.com/gin-gonic/gin"
-	"github.com/joschahenningsen/TUM-Live-Worker-v2/cfg"
-	"github.com/joschahenningsen/TUM-Live-Worker-v2/worker"
-	log "github.com/sirupsen/logrus"
+	"io"
 	"net/http"
 	"regexp"
 	"strings"
+	"sync"
+
+	"github.com/joschahenningsen/TUM-Live-Worker-v2/cfg"
+	"github.com/joschahenningsen/TUM-Live-Worker-v2/worker"
+	log "github.com/sirupsen/logrus"
 )
 
-//streams contains a map from streaming keys to their ids
-var streams = make(map[string]*worker.StreamContext)
+// streams contains a map from streaming keys to their ids
+var streams = safeStreams{streams: make(map[string]*worker.StreamContext)}
 
-//InitApi creates routes for the api consumed by nginx
-func InitApi(addr string) {
-	r := gin.Default()
-	r.GET("/", func(c *gin.Context) {
-		if cfg.WorkerID == "" {
-			c.AbortWithStatus(http.StatusInternalServerError)
-		}
-		c.String(http.StatusOK, "Hi, I'm alive, give me some work!")
-	})
-	r.POST("/on_publish", onPublish)
-	r.POST("/on_publish_done", onPublishDone)
-	r.POST("/on_record_done", onRecordDone)
-	err := r.Run(addr)
-	if err != nil {
-		log.WithError(err).Fatal("Can't initialise self-streaming endpoints")
-	}
+type safeStreams struct {
+	mutex   sync.Mutex
+	streams map[string]*worker.StreamContext
 }
 
-//mustGetStreamInfo gets the stream key and slug from nginx requests and aborts with bad request if something is wrong
-func mustGetStreamInfo(c *gin.Context) (streamKey string, slug string, err error) {
-	name, e := c.GetPostForm("name")
-	if !e {
-		c.AbortWithStatus(http.StatusBadRequest)
+// InitApi creates routes for the api consumed by nginx
+func InitApi(addr string) {
+	defaultHandler := func(w http.ResponseWriter, _ *http.Request) {
+		if cfg.WorkerID == "" {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		io.WriteString(w, "Hi, I'm alive, give me some work!\n")
+	}
+	http.HandleFunc("/", defaultHandler)
+	http.HandleFunc("/on_publish", streams.onPublish)
+	http.HandleFunc("/on_publish_done", streams.onPublishDone)
+	log.Fatal(http.ListenAndServe(addr, nil))
+}
+
+// mustGetStreamInfo gets the stream key and slug from nginx requests and aborts with bad request if something is wrong
+func mustGetStreamInfo(w http.ResponseWriter, r *http.Request) (streamKey string, slug string, err error) {
+	name := r.Form.Get("name")
+	if name == "" {
+		w.WriteHeader(http.StatusInternalServerError)
 		return "", "", errors.New("no stream slug")
 	}
-	tcUrl, e := c.GetPostForm("tcurl")
-	if !e {
-		c.AbortWithStatus(http.StatusBadRequest)
+	tcUrl := r.Form.Get("tcurl")
+	if tcUrl == "" {
+		w.WriteHeader(http.StatusInternalServerError)
 		return "", "", errors.New("no stream key")
 	}
 	if m, _ := regexp.MatchString(".+\\?secret=.+", tcUrl); !m {
-		c.AbortWithStatus(http.StatusForbidden)
+		w.WriteHeader(http.StatusForbidden)
 		return "", "", errors.New("stream key invalid")
 	}
 	key := strings.Split(tcUrl, "?secret=")[1]
