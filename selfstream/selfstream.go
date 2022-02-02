@@ -11,10 +11,14 @@ import (
 
 // onPublishDone is called by nginx when the stream stops publishing
 func (s *safeStreams) onPublishDone(w http.ResponseWriter, r *http.Request) {
-	log.Info("On publish done called")
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	log.Info("onPublishDone called")
 	streamKey, _, err := mustGetStreamInfo(w, r)
 	if err != nil {
-		log.WithFields(log.Fields{"request": r.Form}).WithError(err).Warn("onRecordDone: bad on_publish request")
+		log.WithFields(log.Fields{"request": r.Form}).WithError(err).Warn("onPublishDone: bad request")
 		return
 	}
 	s.mutex.Lock()
@@ -30,17 +34,21 @@ func (s *safeStreams) onPublishDone(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-//onPublish is called by nginx when the stream starts publishing
+// onPublish is called by nginx when the stream starts publishing
 func (s *safeStreams) onPublish(w http.ResponseWriter, r *http.Request) {
-	log.Info("On publish called")
+	log.Info("onPublish called")
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
 	streamKey, slug, err := mustGetStreamInfo(w, r)
 	if err != nil {
-		log.WithFields(log.Fields{"request": r.Form}).WithError(err).Warn("onRecordDone: bad on_publish request")
+		log.WithFields(log.Fields{"request": r.Form}).WithError(err).Warn("Bad on_publish request")
 		return
 	}
 	client, conn, err := worker.GetClient()
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
+		http.Error(w, "Could not establish connection to client", http.StatusInternalServerError)
 		return
 	}
 	resp, err := client.SendSelfStreamRequest(r.Context(), &pb.SelfStreamRequest{
@@ -49,7 +57,7 @@ func (s *safeStreams) onPublish(w http.ResponseWriter, r *http.Request) {
 		CourseSlug: slug,
 	})
 	if err != nil {
-		w.WriteHeader(http.StatusForbidden)
+		http.Error(w, "Authentication failed for SendSelfStreamRequest", http.StatusForbidden)
 		_ = conn.Close()
 		return
 	}
