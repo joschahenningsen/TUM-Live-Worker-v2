@@ -24,9 +24,12 @@ type safeStreams struct {
 
 // InitApi creates routes for the api consumed by nginx
 func InitApi(addr string) {
-	defaultHandler := func(w http.ResponseWriter, _ *http.Request) {
+	defaultHandler := func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.Error(w, "Method not allowed", http.StatusInternalServerError)
+		}
 		if cfg.WorkerID == "" {
-			w.WriteHeader(http.StatusInternalServerError)
+			http.Error(w, "Worker has no ID", http.StatusInternalServerError)
 			return
 		}
 		io.WriteString(w, "Hi, I'm alive, give me some work!\n")
@@ -41,16 +44,16 @@ func InitApi(addr string) {
 func mustGetStreamInfo(w http.ResponseWriter, r *http.Request) (streamKey string, slug string, err error) {
 	name := r.Form.Get("name")
 	if name == "" {
-		w.WriteHeader(http.StatusInternalServerError)
+		http.Error(w, "Did not find stream slug", http.StatusInternalServerError)
 		return "", "", errors.New("no stream slug")
 	}
 	tcUrl := r.Form.Get("tcurl")
 	if tcUrl == "" {
-		w.WriteHeader(http.StatusInternalServerError)
+		http.Error(w, "Did not find stream key.", http.StatusInternalServerError)
 		return "", "", errors.New("no stream key")
 	}
 	if m, _ := regexp.MatchString(".+\\?secret=.+", tcUrl); !m {
-		w.WriteHeader(http.StatusForbidden)
+		http.Error(w, "Stream key in request is invalid", http.StatusInternalServerError)
 		return "", "", errors.New("stream key invalid")
 	}
 	key := strings.Split(tcUrl, "?secret=")[1]
