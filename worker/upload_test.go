@@ -59,7 +59,6 @@ func TestUpload(t *testing.T) {
 			t.Fatalf("incorrect size: %v", h.Size)
 		}
 		w.WriteHeader(200)
-		return
 	})
 	srv := http.Server{Addr: ":8080"}
 	defer srv.Close()
@@ -78,7 +77,7 @@ func createDummyFile(filesize uint) (string, error) {
 		return "", err
 	}
 	defer f.Close()
-	data := make([]byte, 1<<20, 1<<20)
+	data := make([]byte, 1<<20)
 	for i := uint(0); i < filesize; i++ {
 		if _, err = f.Write(data); err != nil {
 			return "", err

@@ -76,10 +76,10 @@ func writeFile(writer *multipart.Writer, fieldname string, file string) error {
 		return err
 	}
 	fileReader, err := os.Open(file)
-	defer fileReader.Close()
 	if err != nil {
 		return err
 	}
+	defer fileReader.Close()
 	_, err = io.Copy(formFileWriter, fileReader)
 	return err
 }
