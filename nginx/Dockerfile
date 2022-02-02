@@ -1,6 +1,4 @@
-FROM ubuntu:21.04 as base-image
-
-RUN apt-get -qq update && apt-get -qq upgrade
+FROM alpine:3.15 as base-image
 
 ENV NGINX_VERSION nginx-1.21.4
 ENV FFMPEG_VERSION snapshot
@@ -8,11 +6,9 @@ ENV NGINX_RTMP_MODULE_VERSION 1.2.2
 ENV TZ=America/New_York
 ENV LD_LIBRARY_PATH=/usr/local/lib
 
-
 FROM base-image as builder
-ARG DEBIAN_FRONTEND=noninteractive
-RUN apt-get -qq install --no-install-recommends -y git wget tclsh pkg-config cmake libssl-dev build-essential librtmp-dev yasm ca-certificates openssl libpcre3-dev && \
-    apt-get clean
+RUN apk add --no-cache \
+    git wget cmake openssl-dev build-base librtmp yasm ca-certificates openssl pcre-dev zlib zlib-dev
 
 # Install nginx.
 WORKDIR /tmp/build/nginx
@@ -45,14 +41,13 @@ RUN make -j "$(getconf _NPROCESSORS_ONLN)"
 
 FROM base-image
 
-ARG DEBIAN_FRONTEND=noninteractive
-RUN apt-get -qq install --no-install-recommends -y tclsh make yasm ca-certificates openssl ffmpeg && \
-    apt-get clean
+RUN apk add --no-cache \
+    make ca-certificates openssl ffmpeg
 
 COPY --from=builder /tmp/build/ /tmp/build/
 
 WORKDIR /tmp/build/nginx/"${NGINX_VERSION}"
-RUN make install
+RUN make install -j "$(getconf _NPROCESSORS_ONLN)"
 WORKDIR /
 
 RUN mkdir /var/lock/nginx
