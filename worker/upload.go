@@ -1,87 +1,85 @@
 package worker
 
 import (
-	"bytes"
-	"fmt"
 	"github.com/joschahenningsen/TUM-Live-Worker-v2/cfg"
 	log "github.com/sirupsen/logrus"
 	"io"
 	"mime/multipart"
 	"net/http"
 	"os"
-	"os/exec"
+	"strings"
+	"time"
 )
 
 func upload(streamCtx *StreamContext) {
 	log.WithField("stream", streamCtx.getStreamName()).Info("Uploading stream")
 	err := post(streamCtx.getTranscodingFileName())
 	if err != nil {
-        log.WithField("stream", streamCtx.getStreamName()).WithError(err).Error("Error uploading stream")
-    }
+		log.WithField("stream", streamCtx.getStreamName()).WithError(err).Error("Error uploading stream")
+	}
 	log.WithField("stream", streamCtx.getStreamName()).Info("Uploaded stream")
 }
 
-// post a file via curl
 func post(file string) error {
-	cmd := exec.Command("curl", "-F",
-		"filename=@"+file,
-		"-F", "benutzer="+cfg.LrzUser,
-		"-F", "mailadresse="+cfg.LrzMail,
-		"-F", "telefon="+cfg.LrzPhone,
-		"-F", "unidir=tum",
-		"-F", "subdir="+cfg.LrzSubDir,
-		"-F", "info=",
-		cfg.LrzUploadUrl)
-	_, err := cmd.CombinedOutput()
-	if err != nil {
-        return err
-    }
-	return nil
+	client := &http.Client{
+		Timeout: time.Second * 30,
+	}
+	r, w := io.Pipe()
+	writer := multipart.NewWriter(w)
+
+	go func() {
+		defer w.Close()
+		defer writer.Close()
+		err := writeFile(writer, "filename", file)
+		if err != nil {
+			log.Error("Cannot create form file: ", err)
+			return
+		}
+
+		fields := map[string]string{
+			"benutzer":    cfg.LrzUser,
+			"mailadresse": cfg.LrzMail,
+			"telefon":     cfg.LrzPhone,
+			"unidir":      "tum",
+			"subdir":      cfg.LrzSubDir,
+			"info":        "",
+		}
+
+		for name, value := range fields {
+			err = writeField(writer, name, value)
+			if err != nil {
+				log.Error("Cannot create form field: ", err)
+				return
+			}
+		}
+	}()
+	rsp, err := client.Post(cfg.LrzUploadUrl, writer.FormDataContentType(), r)
+	if err == nil && rsp.StatusCode != http.StatusOK {
+		log.Error("Request failed with response code: ", rsp.StatusCode)
+	}
+
+	return err
 }
 
-// PostFileUpload deprecated - example kindly provided by Attila O. Thanks buddy!
-func PostFileUpload(url string, values map[string]io.Reader) (err error) {
-	client := http.DefaultClient
-	// Prepare a form that you will submit to that URL.
-	var b bytes.Buffer
-	w := multipart.NewWriter(&b)
-	for key, r := range values {
-		var fw io.Writer
-		if x, ok := r.(io.Closer); ok {
-			defer x.Close()
-		}
-		// Add an image file
-		if x, ok := r.(*os.File); ok {
-			if fw, err = w.CreateFormFile(key, x.Name()); err != nil {
-				return
-			}
-		} else {
-			// Add other fields
-			if fw, err = w.CreateFormField(key); err != nil {
-				return
-			}
-		}
-		if _, err = io.Copy(fw, r); err != nil {
-			return err
-		}
-
-	}
-	w.Close()
-
-	req, err := http.NewRequest("POST", url, &b)
+func writeField(writer *multipart.Writer, name string, value string) error {
+	formFieldWriter, err := writer.CreateFormField(name)
 	if err != nil {
-		return
+		return err
 	}
-	req.Header.Set("Content-Type", w.FormDataContentType())
+	_, err = io.Copy(formFieldWriter, strings.NewReader(value))
+	return err
+}
 
-	// Submit the request
-	res, err := client.Do(req)
+func writeFile(writer *multipart.Writer, fieldname string, file string) error {
+	formFileWriter, err := writer.CreateFormFile(fieldname, file)
 	if err != nil {
-		return
+		return err
 	}
-
-	if res.StatusCode != http.StatusOK {
-		err = fmt.Errorf("bad status: %s", res.Status)
+	fileReader, err := os.Open(file)
+	defer fileReader.Close()
+	if err != nil {
+		return err
 	}
-	return
+	_, err = io.Copy(formFileWriter, fileReader)
+	return err
 }
