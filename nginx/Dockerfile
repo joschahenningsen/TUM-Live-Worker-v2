@@ -1,4 +1,4 @@
-FROM ubuntu:21.04 as base-image
+FROM ubuntu:22.04 as base-image
 
 RUN apt-get -qq update && apt-get -qq upgrade
 
