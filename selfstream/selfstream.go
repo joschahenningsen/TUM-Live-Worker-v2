@@ -64,7 +64,7 @@ func (s *safeStreams) onPublish(w http.ResponseWriter, r *http.Request) {
 	}
 	streamKey, slug, err := mustGetStreamInfo(r)
 	if err != nil {
-		log.WithFields(log.Fields{"request": r.Form}).WithError(err).Warn("Bad onPublish request")
+		log.WithFields(log.Fields{"request": r.Form}).WithError(err).Warn("onPublish: bad request")
 		http.Error(w, "Could not retrieve stream info", http.StatusBadRequest)
 		return
 	}
