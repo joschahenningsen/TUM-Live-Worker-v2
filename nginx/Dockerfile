@@ -1,64 +1,96 @@
-FROM alpine:3.15 as base-image
+# based on https://github.com/alfg/docker-nginx-rtmp/blob/master/Dockerfile
+ARG NGINX_VERSION=1.21.6
+ARG NGINX_RTMP_VERSION=1.2.2
 
-ENV NGINX_VERSION nginx-1.21.4
-ENV FFMPEG_VERSION snapshot
-ENV NGINX_RTMP_MODULE_VERSION 1.2.2
-ENV TZ=America/New_York
-ENV LD_LIBRARY_PATH=/usr/local/lib
+##############################
+# Build the NGINX-build image.
+FROM alpine:3.15 as build-nginx
+ARG NGINX_VERSION
+ARG NGINX_RTMP_VERSION
 
-FROM base-image as builder
+# Build dependencies.
 RUN apk add --no-cache \
-    git wget cmake openssl-dev build-base librtmp yasm ca-certificates openssl pcre-dev zlib zlib-dev
+  build-base \
+  ca-certificates \
+  curl \
+  gcc \
+  libc-dev \
+  libgcc \
+  linux-headers \
+  make \
+  musl-dev \
+  openssl \
+  openssl-dev \
+  pcre \
+  pcre-dev \
+  pkgconf \
+  pkgconfig \
+  zlib-dev
 
-# Install nginx.
-WORKDIR /tmp/build/nginx
-RUN wget -O "${NGINX_VERSION}.tar.gz" "https://nginx.org/download/${NGINX_VERSION}.tar.gz" && \
-    tar -zxf "${NGINX_VERSION}.tar.gz" && \
-    rm "${NGINX_VERSION}.tar.gz"
+WORKDIR /tmp
 
-# Download and decompress RTMP module
-WORKDIR /tmp/build/nginx-rtmp-module
-RUN wget -O "nginx-rtmp-module-${NGINX_RTMP_MODULE_VERSION}.tar.gz" "https://github.com/arut/nginx-rtmp-module/archive/v${NGINX_RTMP_MODULE_VERSION}.tar.gz" && \
-    tar -zxf "nginx-rtmp-module-${NGINX_RTMP_MODULE_VERSION}.tar.gz" && \
-    rm "nginx-rtmp-module-${NGINX_RTMP_MODULE_VERSION}.tar.gz"
+# Get nginx source.
+RUN wget -nv https://nginx.org/download/nginx-${NGINX_VERSION}.tar.gz && \
+    tar zxf nginx-${NGINX_VERSION}.tar.gz && \
+    rm nginx-${NGINX_VERSION}.tar.gz
 
-WORKDIR /tmp/build/nginx/"${NGINX_VERSION}"
-RUN ./configure \
-    --sbin-path=/usr/local/sbin/nginx \
-    --conf-path=/etc/nginx/nginx.conf \
-    --error-log-path=/var/log/nginx/error.log \
-    --pid-path=/var/run/nginx/nginx.pid \
-    --lock-path=/var/lock/nginx/nginx.lock \
-    --http-log-path=/var/log/nginx/access.log \
-    --http-client-body-temp-path=/tmp/nginx-client-body \
-    --with-http_ssl_module \
-    --with-threads \
-    --with-ipv6 \
-    --add-module="/tmp/build/nginx-rtmp-module/nginx-rtmp-module-${NGINX_RTMP_MODULE_VERSION}" \
-    --with-cc-opt="-Wimplicit-fallthrough=0" \
-    --with-debug
-RUN make -j "$(getconf _NPROCESSORS_ONLN)"
+# Get nginx-rtmp module.
+RUN wget -nv https://github.com/arut/nginx-rtmp-module/archive/v${NGINX_RTMP_VERSION}.tar.gz && \
+    tar zxf v${NGINX_RTMP_VERSION}.tar.gz && \
+    rm v${NGINX_RTMP_VERSION}.tar.gz
 
-FROM base-image
+# Compile nginx with nginx-rtmp module.
+RUN cd /tmp/nginx-${NGINX_VERSION} && \
+  ./configure \
+  --prefix=/usr/local/nginx \
+  --add-module=/tmp/nginx-rtmp-module-${NGINX_RTMP_VERSION} \
+  --conf-path=/etc/nginx/nginx.conf \
+  --with-threads \
+  --with-file-aio \
+  --with-http_ssl_module \
+  --with-debug \
+  --with-ipv6 \
+  --with-cc-opt="-Wimplicit-fallthrough=0" && \
+  cd /tmp/nginx-${NGINX_VERSION} && \
+  make -j 4 && \
+  make install
+
+##########################
+# Build the release image.
+FROM alpine:3.15
+
+# Set default ports.
+ENV RTMP_PORT 1935
 
 RUN apk add --no-cache \
-    make ca-certificates openssl ffmpeg
+  ca-certificates \
+  gettext \
+  openssl \
+  pcre \
+  lame \
+  libogg \
+  curl \
+  libass \
+  libvpx \
+  libvorbis \
+  libwebp \
+  libtheora \
+  opus \
+  rtmpdump \
+  x264-dev \
+  x265-dev \
+  ffmpeg
 
-COPY --from=builder /tmp/build/ /tmp/build/
+COPY --from=build-nginx /usr/local/nginx /usr/local/nginx
+COPY --from=build-nginx /etc/nginx /etc/nginx
 
-WORKDIR /tmp/build/nginx/"${NGINX_VERSION}"
-RUN make install -j "$(getconf _NPROCESSORS_ONLN)"
-WORKDIR /
-
-RUN mkdir /var/lock/nginx
-RUN rm -rf /tmp/build
-
-# Forward logs to Docker
-RUN ln -sf /dev/stdout /var/log/nginx/access.log && \
-    ln -sf /dev/stderr /var/log/nginx/error.log
-
-COPY nginx.conf /etc/nginx/nginx.conf
+# Add NGINX path, config and static files.
+ENV PATH "${PATH}:/usr/local/nginx/sbin"
+ADD nginx.conf /etc/nginx/nginx.conf.template
+RUN mkdir -p /opt/data && mkdir /www
 
 EXPOSE 1935
 
-CMD ["nginx", "-g", "daemon off;"]
+CMD envsubst "$(env | sed -e 's/=.*//' -e 's/^/\$/g')" < \
+  /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf && \
+  nginx
