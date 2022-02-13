@@ -10,7 +10,6 @@ FROM alpine:3.15
 
 RUN apk add --no-cache \
   ffmpeg=4.4.1-r2 \
-  curl=7.80.0-r0 \
   tzdata=2021e-r0
 
 COPY --from=builder /worker /worker

@@ -30,11 +30,6 @@ func prepare() {
 	if err != nil {
 		log.Fatal("ffmpeg is not installed")
 	}
-	//check if curl is installed
-	_, err = exec.LookPath("curl")
-	if err != nil {
-		log.Fatal("curl is not installed")
-	}
 }
 
 func main() {
