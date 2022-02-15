@@ -22,7 +22,8 @@ func upload(streamCtx *StreamContext) {
 
 func post(file string) error {
 	client := &http.Client{
-		Timeout: time.Second * 30,
+		// 5 minutes timeout, some large files can take a while.
+		Timeout: time.Minute * 5,
 	}
 	r, w := io.Pipe()
 	writer := multipart.NewWriter(w)
