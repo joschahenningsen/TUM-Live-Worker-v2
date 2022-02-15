@@ -77,6 +77,8 @@ message Status {
 
 // Heartbeat service defines communication from workers to TUM-Live
 service FromWorker {
+  // JoinWorkers is a request to the server to join the worker pool.
+  rpc JoinWorkers (JoinWorkersRequest) returns (JoinWorkersResponse) {}
   rpc SendHeartBeat(HeartBeat) returns (Status) {}
   rpc NotifyTranscodingFinished(TranscodingFinished) returns (Status) {}
   rpc NotifySilenceResults(SilenceResults) returns (Status) {}
@@ -84,6 +86,15 @@ service FromWorker {
   rpc NotifyStreamFinished(StreamFinished) returns (Status) {}
   rpc NotifyUploadFinished(UploadFinished) returns (Status) {}
   rpc SendSelfStreamRequest(SelfStreamRequest) returns (SelfStreamResponse) {}
+}
+
+message JoinWorkersRequest {
+  string token = 1; // token to authenticate the worker
+  string hostname = 2; // hostname of the worker
+}
+
+message JoinWorkersResponse {
+  string worker_id = 1; // worker id, secret set for further communication in case of success
 }
 
 message SelfStreamRequest {
