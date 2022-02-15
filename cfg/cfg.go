@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	WorkerID     string
+	WorkerID     string // authentication token, unique for every worker, used to verify all calls
 	TempDir      string // recordings will end up here before they are converted
 	StorageDir   string // recordings will end up here after they are converted
 	LrzUser      string
@@ -23,7 +23,7 @@ var (
 	LrzUploadUrl string
 	LogDir       string
 	Hostname     string
-	Token        string
+	Token        string // setup token. Used to connect initially and to get a "WorkerID"
 )
 
 // init stops the execution if any of the required config variables are unset.
