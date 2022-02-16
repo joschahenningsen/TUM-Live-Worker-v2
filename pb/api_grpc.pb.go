@@ -250,6 +250,8 @@ var ToWorker_ServiceDesc = grpc.ServiceDesc{
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type FromWorkerClient interface {
+	// JoinWorkers is a request to the server to join the worker pool.
+	JoinWorkers(ctx context.Context, in *JoinWorkersRequest, opts ...grpc.CallOption) (*JoinWorkersResponse, error)
 	SendHeartBeat(ctx context.Context, in *HeartBeat, opts ...grpc.CallOption) (*Status, error)
 	NotifyTranscodingFinished(ctx context.Context, in *TranscodingFinished, opts ...grpc.CallOption) (*Status, error)
 	NotifySilenceResults(ctx context.Context, in *SilenceResults, opts ...grpc.CallOption) (*Status, error)
@@ -265,6 +267,15 @@ type fromWorkerClient struct {
 
 func NewFromWorkerClient(cc grpc.ClientConnInterface) FromWorkerClient {
 	return &fromWorkerClient{cc}
+}
+
+func (c *fromWorkerClient) JoinWorkers(ctx context.Context, in *JoinWorkersRequest, opts ...grpc.CallOption) (*JoinWorkersResponse, error) {
+	out := new(JoinWorkersResponse)
+	err := c.cc.Invoke(ctx, "/api.FromWorker/JoinWorkers", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *fromWorkerClient) SendHeartBeat(ctx context.Context, in *HeartBeat, opts ...grpc.CallOption) (*Status, error) {
@@ -334,6 +345,8 @@ func (c *fromWorkerClient) SendSelfStreamRequest(ctx context.Context, in *SelfSt
 // All implementations must embed UnimplementedFromWorkerServer
 // for forward compatibility
 type FromWorkerServer interface {
+	// JoinWorkers is a request to the server to join the worker pool.
+	JoinWorkers(context.Context, *JoinWorkersRequest) (*JoinWorkersResponse, error)
 	SendHeartBeat(context.Context, *HeartBeat) (*Status, error)
 	NotifyTranscodingFinished(context.Context, *TranscodingFinished) (*Status, error)
 	NotifySilenceResults(context.Context, *SilenceResults) (*Status, error)
@@ -348,6 +361,9 @@ type FromWorkerServer interface {
 type UnimplementedFromWorkerServer struct {
 }
 
+func (UnimplementedFromWorkerServer) JoinWorkers(context.Context, *JoinWorkersRequest) (*JoinWorkersResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method JoinWorkers not implemented")
+}
 func (UnimplementedFromWorkerServer) SendHeartBeat(context.Context, *HeartBeat) (*Status, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SendHeartBeat not implemented")
 }
@@ -380,6 +396,24 @@ type UnsafeFromWorkerServer interface {
 
 func RegisterFromWorkerServer(s grpc.ServiceRegistrar, srv FromWorkerServer) {
 	s.RegisterService(&FromWorker_ServiceDesc, srv)
+}
+
+func _FromWorker_JoinWorkers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(JoinWorkersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(FromWorkerServer).JoinWorkers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/api.FromWorker/JoinWorkers",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(FromWorkerServer).JoinWorkers(ctx, req.(*JoinWorkersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _FromWorker_SendHeartBeat_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -515,6 +549,10 @@ var FromWorker_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "api.FromWorker",
 	HandlerType: (*FromWorkerServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "JoinWorkers",
+			Handler:    _FromWorker_JoinWorkers_Handler,
+		},
 		{
 			MethodName: "SendHeartBeat",
 			Handler:    _FromWorker_SendHeartBeat_Handler,
