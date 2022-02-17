@@ -33,8 +33,11 @@ func init() {
 	if Token == "" {
 		log.Fatal("Environment variable Token is not set")
 	}
-	TempDir = "/recordings"                            // recordings will end up here before they are converted
-	StorageDir = "/srv/cephfs/livestream/rec/TUM-Live" // recordings will end up here after they are converted
+	TempDir = "/recordings" // recordings will end up here before they are converted
+	StorageDir = os.Getenv("MassStorage")
+	if StorageDir == "" {
+		StorageDir = "/mass" // recordings will end up here after they are converted
+	}
 	LrzUser = os.Getenv("LrzUser")
 	LrzMail = os.Getenv("LrzMail")
 	LrzPhone = os.Getenv("LrzPhone")
