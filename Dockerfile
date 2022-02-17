@@ -4,7 +4,9 @@ WORKDIR /go/src/github.com/joschahenningsen/TUM-Live-Worker-v2
 COPY . .
 
 RUN GO111MODULE=on go mod download
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -ldflags "-w -extldflags '-static'" -o /worker app/main/main.go
+# bundle version into binary if specified in build-args, dev otherwise.
+ARG version=dev
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -ldflags "-w -extldflags '-static' -X main.VersionTag=${version}" -o /worker app/main/main.go
 
 FROM alpine:3.15
 
