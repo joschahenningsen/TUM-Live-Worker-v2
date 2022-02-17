@@ -1,74 +1,98 @@
 package selfstream
 
 import (
-	"github.com/gin-gonic/gin"
+	"google.golang.org/grpc"
+	"io"
+	"net/http"
+
 	"github.com/joschahenningsen/TUM-Live-Worker-v2/cfg"
 	"github.com/joschahenningsen/TUM-Live-Worker-v2/pb"
 	"github.com/joschahenningsen/TUM-Live-Worker-v2/worker"
 	log "github.com/sirupsen/logrus"
-	"net/http"
 )
 
-//deprecated
-//onRecordDone is called by nginx when the recording is finished
-func onRecordDone(c *gin.Context) {
-	log.Info("On record done called")
-	streamKey, _, err := mustGetStreamInfo(c)
-	if err != nil {
-		log.WithFields(log.Fields{"request": c.Request.Form}).WithError(err).Warn("onRecordDone: bad on_publish request")
+// defaultHandler tells that the current worker is active and has a valid ID
+func defaultHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	}
+	if cfg.WorkerID == "" {
+		http.Error(w, "Worker has no ID", http.StatusInternalServerError)
 		return
 	}
-	if streamCtx, ok := streams[streamKey]; ok {
-		worker.HandleSelfStreamRecordEnd(streamCtx)
-	} else {
-		log.WithField("streamKey", streamKey).Error("stream key not existing in self streams map")
+	_, err := io.WriteString(w, "Hi, I'm alive, give me some work!\n")
+	if err != nil {
+		http.Error(w, "Could not generate reply", http.StatusInternalServerError)
+		return
 	}
 }
 
-//onPublishDone is called by nginx when the stream stops publishing
-func onPublishDone(c *gin.Context) {
-	log.Info("On publish done called")
-	streamKey, _, err := mustGetStreamInfo(c)
-	if err != nil {
-		log.WithFields(log.Fields{"request": c.Request.Form}).WithError(err).Warn("onRecordDone: bad on_publish request")
+// onPublishDone is called by nginx when the stream stops publishing
+func (s *safeStreams) onPublishDone(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	if streamCtx, ok := streams[streamKey]; ok {
+	log.Info("onPublishDone called")
+	streamKey, _, err := mustGetStreamInfo(r)
+	if err != nil {
+		log.WithFields(log.Fields{"request": r.Form}).WithError(err).Warn("onPublishDone: bad request")
+		http.Error(w, "Could not retrieve stream info", http.StatusBadRequest)
+		return
+	}
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	if streamCtx, ok := s.streams[streamKey]; ok {
 		go func() {
 			worker.HandleStreamEnd(streamCtx)
 			worker.NotifyStreamDone(streamCtx)
 			worker.HandleSelfStreamRecordEnd(streamCtx)
 		}()
 	} else {
-		log.WithField("streamKey", streamKey).Error("stream key not existing in self streams map")
+		errorText := "stream key not existing in self streams map"
+		log.WithField("streamKey", streamKey).Error(errorText)
+		http.Error(w, errorText, http.StatusBadRequest)
 	}
 }
 
-//onPublish is called by nginx when the stream starts publishing
-func onPublish(c *gin.Context) {
-	log.Info("On publish called")
-	streamKey, slug, err := mustGetStreamInfo(c)
+// onPublish is called by nginx when the stream starts publishing
+func (s *safeStreams) onPublish(w http.ResponseWriter, r *http.Request) {
+	log.Info("onPublish called")
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	streamKey, slug, err := mustGetStreamInfo(r)
 	if err != nil {
-		log.WithFields(log.Fields{"request": c.Request.Form}).WithError(err).Warn("onRecordDone: bad on_publish request")
+		log.WithFields(log.Fields{"request": r.Form}).WithError(err).Warn("onPublish: bad request")
+		http.Error(w, "Could not retrieve stream info", http.StatusBadRequest)
 		return
 	}
 	client, conn, err := worker.GetClient()
+
+	defer func(conn *grpc.ClientConn) {
+		if err := conn.Close(); err != nil {
+			log.WithFields(log.Fields{"request": r.Form}).WithError(err).Warn("Could not connect to client")
+		}
+	}(conn)
+
 	if err != nil {
-		c.AbortWithStatus(http.StatusInternalServerError)
+		http.Error(w, "Could not establish connection to client", http.StatusInternalServerError)
 		return
 	}
-	resp, err := client.SendSelfStreamRequest(c, &pb.SelfStreamRequest{
+	resp, err := client.SendSelfStreamRequest(r.Context(), &pb.SelfStreamRequest{
 		WorkerID:   cfg.WorkerID,
 		StreamKey:  streamKey,
 		CourseSlug: slug,
 	})
 	if err != nil {
-		c.AbortWithStatus(http.StatusForbidden)
-		_ = conn.Close()
+		http.Error(w, "Authentication failed for SendSelfStreamRequest", http.StatusForbidden)
 		return
 	}
 	// register stream in local map
 	streamContext := worker.HandleSelfStream(resp, slug)
-	streams[streamKey] = streamContext
-	_ = conn.Close()
+
+	s.mutex.Lock()
+	s.streams[streamKey] = streamContext
+	s.mutex.Unlock()
 }
