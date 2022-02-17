@@ -127,7 +127,6 @@ func HandleStreamEnd(ctx *StreamContext) {
 	} else {
 		log.Warn("context has no command or process to end")
 	}
-	S.endStream(ctx)
 }
 
 func HandleStreamRequest(request *pb.StreamRequest) {
