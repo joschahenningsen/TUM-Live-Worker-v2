@@ -32,7 +32,7 @@ jobs:
           flavor: |
             latest=true
       - name: Docker meta (edge)
-        id: metanginx
+        id: metaedge
         uses: docker/metadata-action@v3
         with:
           images: ghcr.io/joschahenningsen/tum-live-worker-v2/edge
@@ -76,5 +76,5 @@ jobs:
           pull: true
           push: true
           build-args: version=${{ steps.vars.outputs.sha_short }}
-          tags: ${{ steps.metanginx.outputs.tags }}
-          labels: ${{ steps.metanginx.outputs.labels }}
+          tags: ${{ steps.metaedge.outputs.tags }}
+          labels: ${{ steps.metaedge.outputs.labels }}
