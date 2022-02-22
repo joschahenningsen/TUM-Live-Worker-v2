@@ -3,14 +3,14 @@
 The edge module is designed as a simple edge proxy and cache node for TUM-Live-Worker-v2.
 It can be used when network traffic to worker nodes exceeds the available bandwidth, the architecture might look like this:
 ```
-                               ┌───────┐
-┌─────────────────┐ ──────────►│Edge 1 ├──────┐
-│                 │            └───────┘      └──►┌───────────┐
-│  Load Balancer  │                               │  Worker n │
-│(DNS-RR/HTTP 302)│                               │           │
-│                 │            ┌───────┐      ┌──►└───────────┘
-└─────────────────┘ ──────────►│Edge 2 ├──────┘
-                               └───────┘
+                                                ┌───────┐ proxy /stream1.m3u8
+┌─────────────────┐                         ┌─► │Edge 1 ├──────────────────────────┐  ┌───────────┐
+│                 ├─────────────────────────┘   └───────┘                          └─►│           │
+│  Load Balancer  │GET /worker-n/stream1.m3u8                                         │ worker-n  │
+│(DNS-RR/HTTP 302)│GET /worker-n/media123.ts                                          │           │
+│                 ├─────────────────────────┐   ┌───────┐                          ┌─►└───────────┘
+└─────────────────┘                         └─► │Edge 2 ├──────────────────────────┘
+                                                └───────┘ proxy & cache /media123.ts
 ```
 
 ## Configuration
