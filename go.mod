@@ -3,7 +3,7 @@ module github.com/joschahenningsen/TUM-Live-Worker-v2
 go 1.17
 
 require (
-	github.com/getsentry/sentry-go v0.12.0
+	github.com/getsentry/sentry-go v0.13.0
 	github.com/golang/protobuf v1.5.2
 	github.com/icza/gox v0.0.0-20210726201659-cd40a3f8d324
 	github.com/iris-contrib/go.uuid v2.0.0+incompatible
