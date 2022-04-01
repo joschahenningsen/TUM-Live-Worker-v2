@@ -13,7 +13,7 @@ require (
 	github.com/shirou/gopsutil/v3 v3.22.1
 	github.com/sirupsen/logrus v1.8.1
 	github.com/tidwall/gjson v1.14.0
-	github.com/u2takey/ffmpeg-go v0.4.0
+	github.com/u2takey/ffmpeg-go v0.4.1
 	golang.org/x/net v0.0.0-20211216030914-fe4d6282115f // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
 	golang.org/x/sys v0.0.0-20220128215802-99c3d69c2c27 // indirect
@@ -36,7 +36,7 @@ require (
 	github.com/tidwall/pretty v1.2.0 // indirect
 	github.com/tklauser/go-sysconf v0.3.9 // indirect
 	github.com/tklauser/numcpus v0.4.0 // indirect
-	github.com/u2takey/go-utils v0.0.0-20210821132353-e90f7c6bacb5 // indirect
+	github.com/u2takey/go-utils v0.3.1 // indirect
 	github.com/yusufpapurcu/wmi v1.2.2 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
