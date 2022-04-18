@@ -3,6 +3,7 @@ package worker
 import (
 	"fmt"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"sync"
 	"syscall"
@@ -73,7 +74,13 @@ func HandleSelfStream(request *pb.SelfStreamResponse, slug string) *StreamContex
 
 func HandleSelfStreamRecordEnd(ctx *StreamContext) {
 	S.startTranscoding(ctx.getStreamName())
-	transcode(ctx)
+	err := transcode(ctx)
+	if err != nil {
+		ctx.TranscodingSuccessful = false
+		log.Errorf("Error while transcoding: %v", err)
+	} else {
+		ctx.TranscodingSuccessful = true
+	}
 	S.endTranscoding(ctx.getStreamName())
 	notifyTranscodingDone(ctx)
 	if ctx.publishVoD {
@@ -84,12 +91,18 @@ func HandleSelfStreamRecordEnd(ctx *StreamContext) {
 	defer S.endSilenceDetection(ctx)
 
 	sd := NewSilenceDetector(ctx.getTranscodingFileName())
-	err := sd.ParseSilence()
+	err = sd.ParseSilence()
 	if err != nil {
 		log.WithField("File", ctx.getTranscodingFileName()).WithError(err).Error("Detecting silence failed.")
 		return
 	}
 	notifySilenceResults(sd.Silences, ctx.streamId)
+	if ctx.TranscodingSuccessful {
+		err := markForDeletion(ctx)
+		if err != nil {
+			log.WithField("stream", ctx.streamId).WithError(err).Error("Error marking for deletion")
+		}
+	}
 }
 
 // HandleStreamEndRequest ends all streams for a given streamID contained in request
@@ -166,10 +179,15 @@ func HandleStreamRequest(request *pb.StreamRequest) {
 		return
 	}
 	S.startTranscoding(streamCtx.getStreamName())
-	transcode(streamCtx)
+	err := transcode(streamCtx)
+	if err != nil {
+		streamCtx.TranscodingSuccessful = false
+		log.Errorf("Error while transcoding: %v", err)
+	} else {
+		streamCtx.TranscodingSuccessful = true
+	}
 	S.endTranscoding(streamCtx.getStreamName())
 	notifyTranscodingDone(streamCtx)
-	// todo: check health of output file and delete temp
 	if request.PublishVoD {
 		upload(streamCtx)
 		notifyUploadDone(streamCtx)
@@ -185,6 +203,12 @@ func HandleStreamRequest(request *pb.StreamRequest) {
 			return
 		}
 		notifySilenceResults(sd.Silences, streamCtx.streamId)
+	}
+	if streamCtx.TranscodingSuccessful {
+		err := markForDeletion(streamCtx)
+		if err != nil {
+			log.WithField("stream", streamCtx.streamId).WithError(err).Error("Error marking for deletion")
+		}
 	}
 }
 
@@ -211,6 +235,8 @@ type StreamContext struct {
 
 	// calculated after stream:
 	duration uint32 //duration of the stream in seconds
+
+	TranscodingSuccessful bool // TranscodingSuccessful is true if the transcoding was successful
 }
 
 // getRecordingFileName returns the filename a stream should be saved to before transcoding.
@@ -225,6 +251,11 @@ func (s StreamContext) getRecordingFileName() string {
 		cfg.TempDir,
 		s.courseSlug,
 		s.startTime.Format("02012006"))
+}
+
+func (s StreamContext) getRecordingTrashName() string {
+	fn := s.getRecordingFileName()
+	return filepath.Join(filepath.Dir(fn), ".trash", filepath.Base(fn))
 }
 
 // getTranscodingFileName returns the filename a stream should be saved to after transcoding.

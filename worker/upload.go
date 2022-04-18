@@ -4,6 +4,7 @@ import (
 	"github.com/joschahenningsen/TUM-Live-Worker-v2/cfg"
 	log "github.com/sirupsen/logrus"
 	"io"
+	"io/ioutil"
 	"mime/multipart"
 	"net/http"
 	"os"
@@ -13,17 +14,17 @@ import (
 
 func upload(streamCtx *StreamContext) {
 	log.WithField("stream", streamCtx.getStreamName()).Info("Uploading stream")
-	err := post(streamCtx.getTranscodingFileName())
+	err := Post(streamCtx.getTranscodingFileName())
 	if err != nil {
 		log.WithField("stream", streamCtx.getStreamName()).WithError(err).Error("Error uploading stream")
 	}
 	log.WithField("stream", streamCtx.getStreamName()).Info("Uploaded stream")
 }
 
-func post(file string) error {
+func Post(file string) error {
 	client := &http.Client{
 		// 5 minutes timeout, some large files can take a while.
-		Timeout: time.Minute * 5,
+		Timeout: time.Minute * 15,
 	}
 	r, w := io.Pipe()
 	writer := multipart.NewWriter(w)
@@ -58,7 +59,8 @@ func post(file string) error {
 	if err == nil && rsp.StatusCode != http.StatusOK {
 		log.Error("Request failed with response code: ", rsp.StatusCode)
 	}
-
+	a, _ := ioutil.ReadAll(rsp.Body)
+	log.Info(string(a))
 	return err
 }
 

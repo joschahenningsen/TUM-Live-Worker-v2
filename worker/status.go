@@ -6,7 +6,6 @@ import (
 	"github.com/joschahenningsen/TUM-Live-Worker-v2/cfg"
 	"github.com/joschahenningsen/TUM-Live-Worker-v2/pb"
 	"github.com/joschahenningsen/TUM-Live-Worker-v2/worker/vmstat"
-	"github.com/robfig/cron/v3"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -18,25 +17,6 @@ import (
 var statusLock = sync.RWMutex{}
 var S *Status
 var VersionTag string
-
-func init() {
-	stat := vmstat.New()
-	S = &Status{
-		workload:  0,
-		StartTime: time.Now(),
-		Jobs:      []string{},
-		Stat:      stat,
-	}
-	c := cron.New()
-	_, _ = c.AddFunc("* * * * *", S.SendHeartbeat)
-	_, _ = c.AddFunc("* * * * *", func() {
-		err := S.Stat.Update()
-		if err != nil {
-			log.WithError(err).Warn("Failed to update vmstat")
-		}
-	})
-	c.Start()
-}
 
 const (
 	costStream           = 3

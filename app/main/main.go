@@ -34,6 +34,7 @@ func prepare() {
 
 func main() {
 	prepare()
+
 	worker.VersionTag = VersionTag
 	//list files in directory
 	dir, err := os.ReadDir("/recordings")
@@ -72,15 +73,13 @@ func main() {
 	// setup apis
 	go api.InitApi(":50051")
 	go selfstream.InitApi(":8060")
-	LoopForever()
+	worker.Setup()
+	awaitSignal()
 }
 
-// LoopForever on signal processing
-func LoopForever() {
-	fmt.Printf("Entering infinite loop\n")
-
+// awaitSignal Keeps the application running until a signal is received.
+func awaitSignal() {
 	signal.Notify(OsSignal, syscall.SIGINT, syscall.SIGTERM, syscall.SIGUSR1)
-	<-OsSignal
-
-	fmt.Printf("Exiting infinite loop received OsSignal\n")
+	s := <-OsSignal
+	fmt.Printf("Exiting, received OsSignal: %s\n", s.String())
 }
