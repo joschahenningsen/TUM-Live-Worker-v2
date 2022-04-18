@@ -116,7 +116,7 @@ func init() {
 		Hostname: Hostname,
 	})
 	if err != nil {
-		log.Warn("Could not join main server: %v\n", err)
+		log.Warnf("Could not join main server: %v\n", err)
 		return
 	}
 	WorkerID = resp.WorkerId

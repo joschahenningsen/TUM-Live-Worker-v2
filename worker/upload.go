@@ -14,14 +14,14 @@ import (
 
 func upload(streamCtx *StreamContext) {
 	log.WithField("stream", streamCtx.getStreamName()).Info("Uploading stream")
-	err := Post(streamCtx.getTranscodingFileName())
+	err := post(streamCtx.getTranscodingFileName())
 	if err != nil {
 		log.WithField("stream", streamCtx.getStreamName()).WithError(err).Error("Error uploading stream")
 	}
 	log.WithField("stream", streamCtx.getStreamName()).Info("Uploaded stream")
 }
 
-func Post(file string) error {
+func post(file string) error {
 	client := &http.Client{
 		// 5 minutes timeout, some large files can take a while.
 		Timeout: time.Minute * 15,
