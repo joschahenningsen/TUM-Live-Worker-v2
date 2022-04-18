@@ -59,8 +59,12 @@ func post(file string) error {
 	if err == nil && rsp.StatusCode != http.StatusOK {
 		log.Error("Request failed with response code: ", rsp.StatusCode)
 	}
-	a, _ := ioutil.ReadAll(rsp.Body)
-	log.Info(string(a))
+	if err == nil && rsp != nil {
+		all, err := ioutil.ReadAll(rsp.Body)
+		if err == nil {
+			log.WithField("fileUploaded", file).Debug(string(all))
+		}
+	}
 	return err
 }
 
