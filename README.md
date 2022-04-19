@@ -1,3 +1,5 @@
+# ⚠ ️TUM-Live-Worker is now part of [TUM-Live](https://github.com/joschahenningsen/TUM-Live) ⚠️
+
 # TUM-Live-Worker
 
 The worker for [TUM-Live](https://github.com/joschahenningsen/TUM-Live)
